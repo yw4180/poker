@@ -1,0 +1,11 @@
+@import 'tailwindcss';
+
+:root {
+  --felt: #1f5f3f;
+}
+body {
+  @apply bg-neutral-900 text-neutral-100 antialiased;
+}
+.felt {
+  background: radial-gradient(ellipse at center, #2c7a52 0%, var(--felt) 70%, #163f2b 100%);
+}

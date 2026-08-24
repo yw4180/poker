@@ -28,6 +28,8 @@ export const account = pgTable('account', {
   id: text('id').primaryKey(),
   accountId: text('account_id').notNull(),
   providerId: text('provider_id').notNull(),
+  /** Better Auth 1.7+: 账号身份按 issuer 区分 */
+  issuer: text('issuer'),
   userId: text('user_id')
     .notNull()
     .references(() => user.id, { onDelete: 'cascade' }),
