@@ -34,8 +34,8 @@ export function attachSocket(http: HttpServer, deps: SocketDeps): { io: IO; room
     roomState(room, view: RoomView) {
       io.to(`room:${room.id}`).emit('room:state', view);
     },
-    gameState(room, userId, state, seat) {
-      io.to(userRoom(userId)).emit('game:state', viewFor(state, seat));
+    gameState(room, userId, state, seat, deadlineAt) {
+      io.to(userRoom(userId)).emit('game:state', { ...viewFor(state, seat), deadlineAt });
     },
     gameEvent(room, event) {
       io.to(`room:${room.id}`).emit('game:event', event);

@@ -38,12 +38,25 @@ async function decide(page: Page): Promise<Action | null> {
   });
 }
 
+const vp = process.env.E2E_VIEWPORT?.split('x').map(Number);
+if (vp && vp.length === 2)
+  test.use({ viewport: { width: vp[0]!, height: vp[1]! }, hasTouch: true });
+
 test('一人 + 三机器人打完一局', async ({ page }) => {
   const { errors } = watchErrors(page);
   await register(page, '人类');
   await createRoomWithBots(page);
   await page.getByRole('button', { name: '开始游戏' }).click();
 
+  const shots = new Set<string>();
+  const shot = async (name: string) => {
+    if (shots.has(name)) return;
+    shots.add(name);
+    await page.screenshot({
+      path: `test-results/shot-${process.env.E2E_VIEWPORT ?? 'desktop'}-${name}.png`,
+      fullPage: true,
+    });
+  };
   const deadline = Date.now() + 100_000;
   let lastHandSize = -1;
   while (Date.now() < deadline) {
@@ -52,6 +65,9 @@ test('一人 + 三机器人打完一局', async ({ page }) => {
       await page.waitForTimeout(200);
       continue;
     }
+    if (v.phase === 'declaring') await shot('declaring');
+    if (v.phase === 'kitty' && v.actor === v.seat) await shot('kitty');
+    if (v.phase === 'playing' && v.tricks.length >= 3 && v.actor === v.seat) await shot('playing');
     if (v.phase === 'roundEnd' || v.phase === 'finished') break;
     if (v.actor === v.seat && (v.phase === 'kitty' || v.phase === 'playing')) {
       const a = await decide(page);
@@ -81,6 +97,7 @@ test('一人 + 三机器人打完一局', async ({ page }) => {
   expect(final?.handCounts).toEqual([0, 0, 0, 0]);
   expect(lastHandSize).toBe(0);
   await expect(page.getByText('底牌：')).toBeVisible();
+  await shot('roundEnd');
   await expect(page.getByRole('button', { name: '下一局' })).toBeVisible();
   expect(errors, errors.join('\n')).toEqual([]);
 });

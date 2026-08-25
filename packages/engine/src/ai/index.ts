@@ -32,7 +32,12 @@ export function smartAction(
 
 export { buildMemory, isHighestRemaining } from './memory.js';
 export { chooseBury } from './bury.js';
-export { chooseDeclare } from './declare.js';
+export {
+  chooseDeclare,
+  declareOptions,
+  legalDeclareOptions,
+  type DeclareOption,
+} from './declare.js';
 export { chooseLead } from './lead.js';
 export { chooseFollowSmart } from './follow.js';
 export { W as aiWeights } from './weights.js';

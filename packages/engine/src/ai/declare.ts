@@ -2,15 +2,16 @@ import { type Card, BIG_JOKER, SMALL_JOKER, SUITS, type Suit, cardKey, isTrump }
 import type { Action, GameState } from '../state.js';
 import { W } from './weights.js';
 
-interface Option {
+export interface DeclareOption {
   cardIds: string[];
   strength: number;
   suit: Suit | 'NT';
   trumpCount: number;
 }
 
-function options(hand: readonly Card[], level: number): Option[] {
-  const out: Option[] = [];
+/** 手牌中所有可用的亮主选项（不考虑当前已有亮主） */
+export function declareOptions(hand: readonly Card[], level: number): DeclareOption[] {
+  const out: DeclareOption[] = [];
   const count = (suit: Suit | 'NT') =>
     hand.filter((c) => isTrump(c, { suit, level: level as 2 })).length;
   for (const suit of SUITS) {
@@ -48,13 +49,7 @@ function options(hand: readonly Card[], level: number): Option[] {
 export function chooseDeclare(state: GameState, seat: number): Action | null {
   const hand = state.hands[seat]!;
   const cur = state.declaration;
-  const opts = options(hand, state.level).filter((o) => {
-    if (!cur) return true;
-    if (o.strength <= cur.strength) return false;
-    // 加固自己的亮主必须同花色
-    if (cur.seat === seat && o.strength === 2 && o.suit !== cur.trump.suit) return false;
-    return true;
-  });
+  const opts = legalDeclareOptions(hand, state.level, cur, seat);
   if (opts.length === 0) return null;
   // 已经亮过就不再重复亮同样的东西
   if (cur && cur.seat === seat) {
@@ -72,4 +67,18 @@ export function chooseDeclare(state: GameState, seat: number): Action | null {
   return { type: 'DECLARE', seat, cardIds: pick.cardIds };
 }
 
-export const _test = { options, cardKey };
+/** 在已有亮主 cur 的情况下，seat 还能亮哪些 */
+export function legalDeclareOptions(
+  hand: readonly Card[],
+  level: number,
+  cur: GameState['declaration'],
+  seat: number,
+): DeclareOption[] {
+  return declareOptions(hand, level).filter((o) => {
+    if (!cur) return true;
+    if (o.strength <= cur.strength) return false;
+    if (cur.seat === seat && o.strength === 2 && o.suit !== cur.trump.suit) return false;
+    return true;
+  });
+}
+void cardKey;

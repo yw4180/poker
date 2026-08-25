@@ -28,7 +28,13 @@ export interface Seat {
 
 export interface RoomSink {
   roomState(room: Room, view: RoomView): void;
-  gameState(room: Room, userId: string, state: GameState, seat: number): void;
+  gameState(
+    room: Room,
+    userId: string,
+    state: GameState,
+    seat: number,
+    deadlineAt: number | null,
+  ): void;
   gameEvent(room: Room, event: GameEvent): void;
   chat(room: Room, msg: ChatMessage): void;
   gameFinished(room: Room, state: GameState): void;
@@ -55,6 +61,8 @@ export class Room {
   spectators = new Map<string, string>(); // userId -> name
   game: GameState | null = null;
   private timer: NodeJS.Timeout | null = null;
+  /** 当前阶段截止时间（亮主窗口） */
+  deadlineAt: number | null = null;
   lastActivity = Date.now();
 
   constructor(
@@ -101,11 +109,11 @@ export class Room {
     if (!this.game) return;
     for (let seat = 0; seat < 4; seat++) {
       const s = this.seats[seat];
-      if (s && !s.bot) this.sink.gameState(this, s.userId, this.game, seat);
+      if (s && !s.bot) this.sink.gameState(this, s.userId, this.game, seat, this.deadlineAt);
     }
     // 旁观者用座位 0 视角但不看手牌：简单起见发座位 -1 视角（hand 为空）
     for (const userId of this.spectators.keys()) {
-      this.sink.gameState(this, userId, this.game, -1);
+      this.sink.gameState(this, userId, this.game, -1, this.deadlineAt);
     }
   }
 
@@ -114,14 +122,17 @@ export class Room {
     this.touch();
     const seat = this.seatOf(userId);
     if (seat >= 0) {
-      this.seats[seat]!.connected = true;
-      this.seats[seat]!.name = name;
+      const s = this.seats[seat]!;
+      s.connected = true;
+      s.name = name;
+      // 对局中离开被托管的玩家回来：收回座位
+      if (s.bot && !s.userId.startsWith('bot:')) s.bot = false;
     } else {
       this.spectators.set(userId, name);
     }
     this.broadcastRoom();
     if (this.game) {
-      this.sink.gameState(this, userId, this.game, seat);
+      this.sink.gameState(this, userId, this.game, seat, this.deadlineAt);
     }
   }
 
@@ -241,6 +252,8 @@ export class Room {
     this.timer = setInterval(() => {
       if (!this.game || this.game.phase !== 'dealing') {
         this.clearTimer();
+        this.deadlineAt = Date.now() + this.timings.declareWindowMs;
+        this.broadcastGame();
         this.timer = setTimeout(() => this.endDeclaring(), this.timings.declareWindowMs);
         return;
       }
@@ -251,6 +264,7 @@ export class Room {
 
   private endDeclaring() {
     if (!this.game || this.game.phase !== 'declaring') return;
+    this.deadlineAt = null;
     this.apply({ type: 'END_DECLARING' });
     this.scheduleBots();
   }

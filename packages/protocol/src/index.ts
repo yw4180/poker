@@ -62,10 +62,16 @@ export interface Ack<T = undefined> {
 }
 
 /** 服务器→客户端事件的类型定义（供 socket.io 泛型使用） */
+/** 下发给客户端的对局视角：引擎视角 + 服务器计时信息 */
+export type GameView = PlayerView & {
+  /** 当前阶段的截止时间戳（如亮主窗口），无则 null */
+  deadlineAt: number | null;
+};
+
 export interface ServerToClientEvents {
   'room:state': (room: RoomView) => void;
   'room:closed': () => void;
-  'game:state': (view: PlayerView) => void;
+  'game:state': (view: GameView) => void;
   'game:event': (event: GameEvent) => void;
   'chat:message': (msg: ChatMessage) => void;
   error: (payload: { message: string; code?: string }) => void;
