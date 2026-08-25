@@ -3,6 +3,7 @@ import { type RoomOptions, DEFAULT_ROOM_OPTIONS } from '@poker/protocol';
 import { useRouter } from 'next/navigation';
 import { useEffect, useState } from 'react';
 import { AuthGate } from '@/components/AuthGate';
+import { AvatarUploader } from '@/components/AvatarUploader';
 import { RoomOptionsForm } from '@/components/RoomOptionsForm';
 import { Button, Input, Panel } from '@/components/ui';
 import { API_URL } from '@/lib/api';
@@ -50,6 +51,7 @@ function Home({ user }: { user: { id: string; name: string } }) {
       <header className="flex items-center justify-between">
         <h1 className="text-2xl font-bold">🃏 牌桌 · 升级</h1>
         <div className="flex items-center gap-3 text-sm">
+          <AvatarUploader name={user.name} />
           <span>{user.name}</span>
           <Button variant="ghost" onClick={() => signOut().then(() => router.replace('/login'))}>
             退出

@@ -26,11 +26,12 @@ export type Auth = ReturnType<typeof createAuth>;
 export interface AuthUser {
   id: string;
   name: string;
+  avatar: string | null;
 }
 
 /** 从请求头（含 cookie）解析当前登录用户 */
 export async function userFromHeaders(auth: Auth, headers: Headers): Promise<AuthUser | null> {
   const s = await auth.api.getSession({ headers });
   if (!s) return null;
-  return { id: s.user.id, name: s.user.name || s.user.email };
+  return { id: s.user.id, name: s.user.name || s.user.email, avatar: s.user.image ?? null };
 }

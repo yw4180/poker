@@ -101,7 +101,7 @@ export function attachSocket(http: HttpServer, deps: SocketDeps): { io: IO; room
       leaveRoomChannels();
       // 先加入频道再进房间，确保能收到进房时的广播
       void socket.join(`room:${target.id}`);
-      return rooms.join(user.id, user.name, target.id);
+      return rooms.join(user.id, user.name, target.id, user.avatar);
     };
     const current = () => {
       const room = rooms.roomOf(user.id);

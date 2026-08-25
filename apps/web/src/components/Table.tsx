@@ -1,7 +1,7 @@
 'use client';
 import type { GameView, RoomView } from '@poker/protocol';
-import { Countdown } from './Countdown';
-import { CardBack, PlayingCard } from './PlayingCard';
+import { Avatar } from './Avatar';
+import { PlayingCard } from './PlayingCard';
 import { levelText, teamText, trumpText } from '@/lib/store';
 
 /** 以自己为下方，其他人按出牌顺序排到右/上/左 */
@@ -52,7 +52,13 @@ export function Table({ game, room }: { game: GameView; room: RoomView }) {
       <div
         className={`flex flex-col items-center gap-0.5 rounded-lg px-2 py-1 text-xs sm:px-3 sm:text-sm ${isActor ? 'bg-amber-400/30 ring-2 ring-amber-300' : 'bg-black/30'}`}
       >
-        <div className="flex items-center gap-1">
+        <div className="flex items-center gap-1.5">
+          <Avatar
+            name={p?.name ?? '?'}
+            src={p?.avatar}
+            size={22}
+            bot={!!s?.bot && s.userId.startsWith('bot:')}
+          />
           <span className={`h-2 w-2 rounded-full ${team === 0 ? 'bg-sky-400' : 'bg-rose-400'}`} />
           <span className="max-w-24 truncate font-medium">
             {p?.name ?? s?.name ?? `座位${seat + 1}`}
@@ -94,22 +100,18 @@ export function Table({ game, room }: { game: GameView; room: RoomView }) {
 
   const center = (
     <div className="flex flex-col items-center gap-1 text-center text-xs text-white/80">
-      {game.phase === 'dealing' && (
-        <>
-          <CardBack small />
-          <span>发牌中… 剩 {Math.max(0, game.deckCount - 8)}</span>
-        </>
-      )}
-      {game.phase === 'declaring' && game.deadlineAt && (
-        <Countdown deadlineAt={game.deadlineAt} label="亮主倒计时" />
-      )}
       {game.declaration && !game.trump && (
         <div className="flex items-center gap-1 rounded bg-black/40 px-2 py-1">
-          <span>{game.players[game.declaration.seat]?.name} 亮</span>
+          <span className="whitespace-nowrap">{game.players[game.declaration.seat]?.name} 亮</span>
           {game.declaration.cards.map((c) => (
             <PlayingCard key={c.id} card={c} small />
           ))}
         </div>
+      )}
+      {(game.phase === 'dealing' || game.phase === 'declaring') && !game.declaration && (
+        <span className="rounded bg-black/40 px-2 py-1">
+          {game.phase === 'dealing' ? '发牌中…' : '等待亮主'}
+        </span>
       )}
       {game.phase === 'kitty' && <span className="rounded bg-black/40 px-2 py-1">庄家扣底中…</span>}
       {game.phase === 'playing' && showPlays.length === 0 && (

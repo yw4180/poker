@@ -66,6 +66,7 @@ export type ClientPayload<E extends ClientEventName> = z.infer<(typeof ClientEve
 export interface SeatView {
   userId: string;
   name: string;
+  avatar: string | null;
   ready: boolean;
   connected: boolean;
   bot: boolean;
@@ -88,8 +89,10 @@ export interface RoomView {
   status: 'lobby' | 'playing';
   options: RoomOptions;
   undoRequest: UndoRequestView | null;
+  /** 已点击“下一局”的座位 */
+  readyNext: number[];
   seats: [SeatView | null, SeatView | null, SeatView | null, SeatView | null];
-  spectators: { userId: string; name: string }[];
+  spectators: { userId: string; name: string; avatar: string | null }[];
 }
 
 export interface ChatMessage {

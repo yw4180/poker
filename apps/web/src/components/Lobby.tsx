@@ -1,6 +1,7 @@
 'use client';
 import type { RoomView } from '@poker/protocol';
 import { useState } from 'react';
+import { Avatar } from './Avatar';
 import { RoomOptionsForm, optionsSummary } from './RoomOptionsForm';
 import { Button } from './ui';
 import { request } from '@/lib/socket';
@@ -31,7 +32,15 @@ export function Lobby({ room, userId }: { room: RoomView; userId: string }) {
                   {i % 2 === 0 ? '1/3 队' : '2/4 队'}
                 </span>
               </div>
-              <div className="font-medium">
+              <div className="flex items-center gap-2 font-medium">
+                {s && (
+                  <Avatar
+                    name={s.name}
+                    src={s.avatar}
+                    size={28}
+                    bot={s.bot && s.userId.startsWith('bot:')}
+                  />
+                )}
                 {s ? s.name : <span className="text-white/40">空位</span>}
               </div>
             </div>

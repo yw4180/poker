@@ -41,13 +41,13 @@ export class RoomManager {
     return [...this.rooms.values()];
   }
 
-  join(userId: string, name: string, roomId: string): Room {
+  join(userId: string, name: string, roomId: string, avatar: string | null = null): Room {
     const room = this.get(roomId);
     if (!room) throw new Error('房间不存在');
     const current = this.roomOf(userId);
     if (current && current !== room) current.leave(userId);
     this.membership.set(userId, room.id);
-    room.enter(userId, name);
+    room.enter(userId, name, avatar);
     return room;
   }
 

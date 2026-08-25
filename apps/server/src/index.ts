@@ -1,5 +1,11 @@
 import cors from '@fastify/cors';
-import { createDb, gamePlayers, games } from '@poker/db';
+import multipart from '@fastify/multipart';
+import fastifyStatic from '@fastify/static';
+import { eq } from 'drizzle-orm';
+import { mkdir } from 'node:fs/promises';
+import path from 'node:path';
+import sharp from 'sharp';
+import { createDb, gamePlayers, games, user as userTable } from '@poker/db';
 import Fastify from 'fastify';
 import { nanoid } from 'nanoid';
 import { createAuth, userFromHeaders } from './auth.js';
@@ -12,6 +18,15 @@ async function main() {
   const app = Fastify({ logger: true });
 
   await app.register(cors, { origin: config.webOrigin, credentials: true });
+  await app.register(multipart, { limits: { fileSize: 5 * 1024 * 1024, files: 1 } });
+  const uploadDir = path.resolve(config.uploadDir);
+  await mkdir(path.join(uploadDir, 'avatars'), { recursive: true });
+  await app.register(fastifyStatic, {
+    root: uploadDir,
+    prefix: '/api/uploads/',
+    decorateReply: false,
+    maxAge: '7d',
+  });
 
   // Better Auth：把 Fastify 请求转成 Web Request
   app.route({
@@ -35,6 +50,30 @@ async function main() {
   });
 
   app.get('/api/health', async () => ({ ok: true }));
+
+  /** 上传头像：multipart 字段 file；压成 128x128 webp，写入 user.image */
+  app.post('/api/avatar', async (request, reply) => {
+    const headers = new Headers();
+    for (const [k, v] of Object.entries(request.headers))
+      if (typeof v === 'string') headers.set(k, v);
+    const me = await userFromHeaders(auth, headers);
+    if (!me) return reply.status(401).send({ error: '未登录' });
+    const file = await request.file();
+    if (!file) return reply.status(400).send({ error: '没有文件' });
+    const buf = await file.toBuffer();
+    const name = `${me.id}-${Date.now()}.webp`;
+    await sharp(buf)
+      .rotate()
+      .resize(128, 128, { fit: 'cover' })
+      .webp({ quality: 85 })
+      .toFile(path.join(uploadDir, 'avatars', name));
+    const url = `/api/uploads/avatars/${name}`;
+    await db
+      .update(userTable)
+      .set({ image: url, updatedAt: new Date() })
+      .where(eq(userTable.id, me.id));
+    return { url };
+  });
 
   app.get('/api/me', async (request, reply) => {
     const headers = new Headers();

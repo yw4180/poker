@@ -16,5 +16,6 @@ export const config = {
     clientId: process.env.GOOGLE_CLIENT_ID ?? '',
     clientSecret: process.env.GOOGLE_CLIENT_SECRET ?? '',
   },
+  uploadDir: env('UPLOAD_DIR', 'uploads'),
   isProd: process.env.NODE_ENV === 'production',
 };

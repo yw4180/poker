@@ -16,7 +16,7 @@ beforeAll(async () => {
     // 测试用鉴权：cookie "uid=xxx" 直接当作用户
     authenticate: async (headers) => {
       const m = /uid=([\w-]+)/.exec(headers.get('cookie') ?? '');
-      return m ? { id: m[1]!, name: `用户${m[1]}` } : null;
+      return m ? { id: m[1]!, name: `用户${m[1]}`, avatar: null } : null;
     },
     timings: { dealCardMs: 1, declareWindowMs: 20, botDelayMs: 1, trickPauseMs: 1 },
   });

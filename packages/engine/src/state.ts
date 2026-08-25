@@ -8,6 +8,7 @@ export type Phase =
 export interface PlayerInfo {
   id: string;
   name: string;
+  avatar?: string | null;
 }
 
 export interface GameConfig {

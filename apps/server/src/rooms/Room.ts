@@ -39,6 +39,7 @@ function mergeOptions(base: RoomOptions, patch: RoomOptionsPatch): RoomOptions {
 export interface Seat {
   userId: string;
   name: string;
+  avatar: string | null;
   ready: boolean;
   connected: boolean;
   bot: boolean;
@@ -76,7 +77,9 @@ const secureRandom = () => randomInt(0, 2 ** 31) / 2 ** 31;
 export class Room {
   status: 'lobby' | 'playing' = 'lobby';
   seats: [Seat | null, Seat | null, Seat | null, Seat | null] = [null, null, null, null];
-  spectators = new Map<string, string>(); // userId -> name
+  spectators = new Map<string, { name: string; avatar: string | null }>();
+  /** 本局结束后已点“下一局”的座位 */
+  readyNext = new Set<number>();
   game: GameState | null = null;
   private timer: NodeJS.Timeout | null = null;
   private turnTimer: NodeJS.Timeout | null = null;
@@ -119,8 +122,9 @@ export class Room {
       status: this.status,
       options: this.options,
       undoRequest: this.undoRequest,
+      readyNext: [...this.readyNext],
       seats: this.seats.map((s) => (s ? ({ ...s } as SeatView) : null)) as RoomView['seats'],
-      spectators: [...this.spectators].map(([userId, name]) => ({ userId, name })),
+      spectators: [...this.spectators].map(([userId, v]) => ({ userId, ...v })),
     };
   }
 
@@ -148,7 +152,8 @@ export class Room {
     if (!this.game) return;
     for (let seat = 0; seat < 4; seat++) {
       const s = this.seats[seat];
-      if (s && !s.bot) this.sink.gameState(this, s.userId, this.game, seat, this.deadlineAt);
+      if (s && !s.userId.startsWith('bot:'))
+        this.sink.gameState(this, s.userId, this.game, seat, this.deadlineAt);
     }
     // 旁观者用座位 0 视角但不看手牌：简单起见发座位 -1 视角（hand 为空）
     for (const userId of this.spectators.keys()) {
@@ -157,17 +162,18 @@ export class Room {
   }
 
   /** 玩家进入（或重连）：补发状态 */
-  enter(userId: string, name: string) {
+  enter(userId: string, name: string, avatar: string | null = null) {
     this.touch();
     const seat = this.seatOf(userId);
     if (seat >= 0) {
       const s = this.seats[seat]!;
       s.connected = true;
       s.name = name;
+      s.avatar = avatar;
       // 对局中离开被托管的玩家回来：收回座位
       if (s.bot && !s.userId.startsWith('bot:')) s.bot = false;
     } else {
-      this.spectators.set(userId, name);
+      this.spectators.set(userId, { name, avatar });
     }
     this.broadcastRoom();
     if (this.game) {
@@ -211,11 +217,13 @@ export class Room {
     this.touch();
     if (this.status !== 'lobby') throw new Error('对局进行中不能换座');
     if (this.seats[seat]) throw new Error('该座位已有人');
-    const name = this.spectators.get(userId) ?? this.seats[this.seatOf(userId)]?.name ?? '玩家';
     const old = this.seatOf(userId);
+    const spec = this.spectators.get(userId);
+    const name = spec?.name ?? this.seats[old]?.name ?? '玩家';
+    const avatar = spec?.avatar ?? this.seats[old]?.avatar ?? null;
     if (old >= 0) this.seats[old] = null;
     this.spectators.delete(userId);
-    this.seats[seat] = { userId, name, ready: false, connected: true, bot: false };
+    this.seats[seat] = { userId, name, avatar, ready: false, connected: true, bot: false };
     this.broadcastRoom();
   }
 
@@ -224,9 +232,9 @@ export class Room {
     if (this.status !== 'lobby') throw new Error('对局进行中不能离座');
     const seat = this.seatOf(userId);
     if (seat < 0) return;
-    const name = this.seats[seat]!.name;
+    const { name, avatar } = this.seats[seat]!;
     this.seats[seat] = null;
-    this.spectators.set(userId, name);
+    this.spectators.set(userId, { name, avatar });
     this.broadcastRoom();
   }
 
@@ -237,6 +245,7 @@ export class Room {
     this.seats[seat] = {
       userId: `bot:${this.id}:${seat}`,
       name: `机器人${seat + 1}`,
+      avatar: null,
       ready: true,
       connected: true,
       bot: true,
@@ -277,7 +286,7 @@ export class Room {
 
   chat(userId: string, text: string) {
     const seat = this.seatOf(userId);
-    const name = seat >= 0 ? this.seats[seat]!.name : (this.spectators.get(userId) ?? '?');
+    const name = seat >= 0 ? this.seats[seat]!.name : (this.spectators.get(userId)?.name ?? '?');
     this.sink.chat(this, { userId, name, text, at: Date.now() });
   }
 
@@ -286,27 +295,36 @@ export class Room {
     this.requireHost(byUserId);
     if (this.status !== 'lobby') throw new Error('对局已经开始');
     if (this.seats.some((s) => !s)) throw new Error('需要 4 名玩家');
-    const players = this.seats.map((s) => ({ id: s!.userId, name: s!.name })) as [
-      PlayerInfo,
-      PlayerInfo,
-      PlayerInfo,
-      PlayerInfo,
-    ];
+    const players = this.seats.map((s) => ({
+      id: s!.userId,
+      name: s!.name,
+      avatar: s!.avatar,
+    })) as [PlayerInfo, PlayerInfo, PlayerInfo, PlayerInfo];
     this.game = createGame(players, { kittyBonus: this.options.kittyBonus });
     this.status = 'playing';
     this.broadcastRoom();
     this.beginRound();
   }
 
+  /** 任意入座玩家点“下一局”即为准备；机器人自动准备；全员准备后开始 */
   nextRound(byUserId: string) {
-    this.requireHost(byUserId);
+    const seat = this.seatOf(byUserId);
+    if (seat < 0) throw new Error('你不在座位上');
     if (!this.game || this.game.phase !== 'roundEnd') throw new Error('本局尚未结束');
-    this.beginRound();
+    this.readyNext.add(seat);
+    for (let s = 0; s < 4; s++) if (this.seats[s]?.bot) this.readyNext.add(s);
+    if (this.readyNext.size === 4) {
+      this.beginRound();
+    } else {
+      this.broadcastRoom();
+    }
   }
 
   private beginRound() {
+    this.readyNext.clear();
     this.history = [];
     this.cancelUndo();
+    this.broadcastRoom();
     this.apply({ type: 'START_ROUND', deck: shuffle(makeDeck(), secureRandom) });
     this.clearTimer();
     this.timer = setInterval(() => {

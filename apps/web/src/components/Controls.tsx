@@ -88,6 +88,16 @@ export function Controls({
             {trumpText(game.declaration.trump.suit)}
           </span>
         )}
+        {game.phase === 'dealing' && (
+          <span className="text-white/50">发牌中 · 剩 {Math.max(0, game.deckCount - 8)} 张</span>
+        )}
+        {game.phase === 'declaring' && game.deadlineAt && (
+          <Countdown
+            deadlineAt={game.deadlineAt}
+            totalMs={room.options.declareWindowSec * 1000}
+            label="亮主"
+          />
+        )}
       </div>
     );
   }
