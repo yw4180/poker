@@ -14,8 +14,8 @@ RUN pnpm --filter @poker/server --prod deploy /out
 FROM base AS runtime
 ENV NODE_ENV=production
 COPY --from=build /out /app
-# 数据库迁移文件（启动时执行）
+# 数据库迁移文件（启动时执行；脚本从 @poker/db 包内运行以便解析依赖）
 COPY --from=build /app/packages/db/drizzle /app/drizzle
-COPY --from=build /app/packages/db/dist/migrate.js /app/migrate.js
+ENV MIGRATIONS_DIR=/app/drizzle
 EXPOSE 4000
-CMD ["sh", "-c", "node migrate.js && node dist/index.js"]
+CMD ["sh", "-c", "node node_modules/@poker/db/dist/migrate.js && node dist/index.js"]
