@@ -6,7 +6,10 @@ export const metadata: Metadata = { title: '牌桌 · 升级', description: '和
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
     <html lang="zh-CN">
-      <body className="min-h-screen">{children}</body>
+      {/* 浏览器插件（如 Grammarly）会往 body 加属性，忽略这类 hydration 差异 */}
+      <body className="min-h-screen" suppressHydrationWarning>
+        {children}
+      </body>
     </html>
   );
 }

@@ -25,7 +25,7 @@ export function viewFor(state: GameState, seat: number): PlayerView {
   return {
     ...rest,
     seat,
-    hand: hands[seat]!,
+    hand: hands[seat] ?? [], // 旁观者 seat = -1
     handCounts: hands.map((h) => h.length) as [number, number, number, number],
     kitty: kittyVisible ? kitty : null,
     kittyCount: kitty.length,

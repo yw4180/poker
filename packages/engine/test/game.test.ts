@@ -112,3 +112,16 @@ describe('full game simulation', () => {
     expect(v.deckCount).toBe(8);
   });
 });
+
+describe('spectator view', () => {
+  it('has an empty hand and no kitty', () => {
+    const rng = seededRandom(5);
+    let s = createGame([...players]);
+    s = reduce(s, { type: 'START_ROUND', deck: shuffle(makeDeck(), rng) }).state;
+    s = reduce(s, { type: 'DEAL_ALL' }).state;
+    const v = viewFor(s, -1);
+    expect(v.hand).toEqual([]);
+    expect(v.seat).toBe(-1);
+    expect(v.kitty).toBeNull();
+  });
+});

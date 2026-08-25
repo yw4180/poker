@@ -60,7 +60,7 @@ export const useStore = create<State>((set, get) => ({
     const onGame = (game: GameView) => {
       const prev = get().game;
       const patch: Partial<State> = { game };
-      if (prev && prev.hand.length !== game.hand.length) patch.selected = [];
+      if (prev && prev.hand?.length !== game.hand?.length) patch.selected = [];
       // 进入扣底阶段：标记新拿到的底牌
       if (prev && prev.phase !== 'kitty' && game.phase === 'kitty' && game.seat === game.dealer) {
         const before = new Set(prev.hand.map((c) => c.id));

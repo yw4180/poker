@@ -87,9 +87,14 @@ export function attachSocket(http: HttpServer, deps: SocketDeps): { io: IO; room
       }) as never);
     };
 
+    const leaveRoomChannels = () => {
+      for (const r of socket.rooms) if (r.startsWith('room:')) void socket.leave(r);
+    };
     const joinRoom = (roomId: string) => {
       const target = rooms.get(roomId);
       if (!target) throw new Error('房间不存在');
+      // 退出旧房间频道，避免旧房间的广播覆盖当前房间状态
+      leaveRoomChannels();
       // 先加入频道再进房间，确保能收到进房时的广播
       void socket.join(`room:${target.id}`);
       return rooms.join(user.id, user.name, target.id);
@@ -109,8 +114,7 @@ export function attachSocket(http: HttpServer, deps: SocketDeps): { io: IO; room
       joinRoom(p.roomId);
     });
     on('room:leave', () => {
-      const room = rooms.roomOf(user.id);
-      if (room) void socket.leave(`room:${room.id}`);
+      leaveRoomChannels();
       rooms.leave(user.id);
     });
     on('room:sit', (p) => current().sit(user.id, p.seat));
