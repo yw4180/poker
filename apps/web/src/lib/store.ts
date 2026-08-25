@@ -102,3 +102,11 @@ export const useStore = create<State>((set, get) => ({
 export function trumpText(suit: string): string {
   return { S: '♠ 黑桃', H: '♥ 红桃', D: '♦ 方块', C: '♣ 梅花', NT: '无主' }[suit] ?? suit;
 }
+
+// 开发/测试模式下把 store 挂到 window，便于 e2e 读取状态
+if (typeof window !== 'undefined' && process.env.NODE_ENV !== 'production') {
+  (window as unknown as { __store: typeof useStore }).__store = useStore;
+  void import('@poker/engine').then((engine) => {
+    (window as unknown as { __engine: typeof engine }).__engine = engine;
+  });
+}

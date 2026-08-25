@@ -27,6 +27,7 @@ export function PlayingCard({
   return (
     <button
       type="button"
+      data-card-id={card.id}
       onClick={onClick}
       className={`${size} relative flex shrink-0 flex-col items-start justify-between rounded-md border bg-white p-1 font-bold shadow transition-transform
         ${red ? 'text-red-600' : 'text-neutral-900'}
