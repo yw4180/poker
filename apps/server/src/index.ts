@@ -6,7 +6,7 @@ import { mkdir } from 'node:fs/promises';
 import path from 'node:path';
 import sharp from 'sharp';
 import { createAvatar } from '@dicebear/core';
-import { botttsNeutral } from '@dicebear/collection';
+import { funEmoji } from '@dicebear/collection';
 import { createDb, gamePlayers, games, user as userTable } from '@poker/db';
 import Fastify from 'fastify';
 import { nanoid } from 'nanoid';
@@ -53,10 +53,10 @@ async function main() {
 
   app.get('/api/health', async () => ({ ok: true }));
 
-  /** 机器人头像：DiceBear bottts-neutral（机器人脸，CC0），按名字生成 */
+  /** 机器人头像：DiceBear Fun Emoji（CC BY 4.0，见 README），按名字生成 */
   app.get<{ Params: { seed: string } }>('/api/bot-avatar/:seed', async (request, reply) => {
     const seed = decodeURIComponent(request.params.seed.replace(/\.svg$/, ''));
-    const svg = createAvatar(botttsNeutral, {
+    const svg = createAvatar(funEmoji, {
       seed,
       backgroundColor: ['1f2937', '0f766e', '155e75', '4c1d95', '9f1239', '92400e'],
       radius: 50,

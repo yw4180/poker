@@ -76,7 +76,7 @@ function RoomPage({ user }: { user: { id: string; name: string } }) {
   const roundOver = game && (game.phase === 'roundEnd' || game.phase === 'finished');
 
   const side = (
-    <div className="flex min-h-0 flex-col gap-3 lg:h-full">
+    <div className="flex min-h-0 flex-col gap-3 lg:sticky lg:top-16 lg:h-[calc(100vh-5rem)]">
       {inGame && room.options.cardCounter && (
         <Panel
           title="记牌器"
@@ -127,7 +127,7 @@ function RoomPage({ user }: { user: { id: string; name: string } }) {
       </div>
 
       {inGame ? (
-        <div className="grid gap-4 lg:h-full lg:grid-cols-[minmax(0,1fr)_300px]">
+        <div className="grid gap-4 lg:items-start lg:grid-cols-[minmax(0,1fr)_300px]">
           <div className="flex min-h-0 flex-col gap-3">
             <InfoBar game={game} />
             <Table game={game} room={room} />
@@ -148,7 +148,7 @@ function RoomPage({ user }: { user: { id: string; name: string } }) {
           {roundOver && <RoundEndModal game={game} room={room} userId={user.id} />}
         </div>
       ) : (
-        <div className="grid gap-4 lg:h-full lg:grid-cols-[minmax(0,1fr)_300px]">
+        <div className="grid gap-4 lg:items-start lg:grid-cols-[minmax(0,1fr)_300px]">
           <div>
             {game && game.phase === 'finished' && (
               <div className="mb-4 rounded-xl border border-accent/30 bg-accent/10 p-3 text-center text-sm">

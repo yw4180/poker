@@ -515,18 +515,18 @@ export class Room {
     this.undoRequest = {
       seat,
       name: this.seats[seat]!.name,
-      expiresAt: Date.now() + 60_000,
+      expiresAt: Date.now() + 30_000,
       approved,
       required,
     };
     this.systemMessage(`${this.seats[seat]!.name} 请求悔牌`);
     this.undoTimer = setTimeout(() => {
       if (this.undoRequest) {
-        this.systemMessage('悔牌请求超时');
+        this.systemMessage('30 秒内无人响应，悔牌自动拒绝');
         this.cancelUndo();
         this.broadcastRoom();
       }
-    }, 60_000);
+    }, 30_000);
     this.settleUndo();
     this.broadcastRoom();
   }

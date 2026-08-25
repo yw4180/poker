@@ -138,7 +138,7 @@ export function Table({ game, room }: { game: GameView; room: RoomView }) {
   );
 
   return (
-    <div className="felt relative mx-auto grid h-[min(56vh,600px)] w-full lg:h-auto lg:min-h-0 lg:flex-1 grid-cols-[minmax(84px,1fr)_2fr_minmax(84px,1fr)] grid-rows-[auto_minmax(0,1fr)_auto] overflow-hidden rounded-2xl p-3">
+    <div className="felt relative mx-auto grid h-[min(56vh,560px)] w-full lg:h-[540px] lg:shrink-0 grid-cols-[minmax(84px,1fr)_2fr_minmax(84px,1fr)] grid-rows-[auto_minmax(0,1fr)_auto] overflow-hidden rounded-2xl p-3">
       <div className="col-start-2 row-start-1 flex justify-center">{seatBox(top)}</div>
       <div className="col-start-1 row-start-2 flex items-center justify-center">
         {seatBox(left)}

@@ -33,7 +33,7 @@ export function AppShell({
         </div>
       </header>
       <main
-        className={`mx-auto w-full flex-1 px-4 py-4 ${wide ? 'max-w-[1400px]' : 'max-w-3xl'} ${fill ? 'lg:h-[calc(100vh-3rem)] lg:overflow-hidden' : ''}`}
+        className={`mx-auto w-full flex-1 px-4 py-4 ${wide ? 'max-w-[1400px]' : 'max-w-3xl'} ${fill ? 'lg:min-h-[calc(100vh-3rem)]' : ''}`}
       >
         {children}
       </main>

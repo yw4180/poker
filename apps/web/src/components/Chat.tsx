@@ -81,8 +81,8 @@ export function Chat({ className = '' }: { className?: string }) {
       <div ref={listRef} className="flex-1 space-y-1.5 overflow-y-auto px-4 py-3 text-sm">
         {chat.length === 0 && <div className="text-[13px] text-faint">还没有人说话</div>}
         {chat.map((m, i) => (
-          <div key={`${m.at}-${i}`} className="flex gap-2">
-            <span className="shrink-0 font-mono text-[11px] leading-5 text-faint">{fmt(m.at)}</span>
+          <div key={`${m.at}-${i}`} className="flex items-baseline gap-2">
+            <span className="shrink-0 font-mono text-[11px] text-faint">{fmt(m.at)}</span>
             <span className="min-w-0 break-words">
               <span
                 className={`font-medium ${m.userId.startsWith('bot:') ? 'text-team-b' : 'text-accent'}`}

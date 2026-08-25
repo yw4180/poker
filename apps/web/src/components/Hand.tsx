@@ -41,7 +41,7 @@ export function Hand({
     (a, b) => rank.indexOf(effectiveSuit(a, order)) - rank.indexOf(effectiveSuit(b, order)),
   );
   return (
-    <div className="flex flex-wrap justify-center gap-y-4 px-2 pb-2 pt-4 lg:shrink-0 lg:flex-nowrap lg:overflow-x-auto">
+    <div className="flex flex-wrap justify-center gap-y-4 px-2 pb-2 pt-4 lg:flex-nowrap lg:overflow-x-auto">
       {sorted.map((c, i) => {
         const isTrump = effectiveSuit(c, order) === 'T';
         return (

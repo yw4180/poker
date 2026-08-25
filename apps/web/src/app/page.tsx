@@ -73,15 +73,20 @@ function Home({ user }: { user: { id: string; name: string } }) {
             升级 · 拖拉机
           </div>
           <h1 className="mt-2 font-serif text-4xl font-semibold leading-tight tracking-tight sm:text-5xl">
-            今晚，开一桌
+            别走，三缺一
           </h1>
-          <p className="mt-3 text-[15px] text-muted">
-            两副牌，四个人，一整晚。缺人有机器人陪打，掉线自动托管。
-          </p>
+          <p className="mt-3 text-[15px] text-muted">更高端的私人在线牌局会所</p>
         </div>
 
         <Panel>
           <div className="flex flex-col gap-3 p-4 sm:flex-row sm:items-center">
+            <Input
+              placeholder="房间名称（留空随机取名）"
+              value={roomName}
+              onChange={(e) => setRoomName(e.target.value)}
+              maxLength={30}
+              className="h-11 sm:max-w-56"
+            />
             <Button variant="primary" size="lg" onClick={create}>
               创建房间
             </Button>
@@ -101,24 +106,15 @@ function Home({ user }: { user: { id: string; name: string } }) {
                 value={code}
                 onChange={(e) => setCode(e.target.value.toUpperCase())}
                 maxLength={8}
-                className="font-mono uppercase tracking-widest"
+                className="h-11 font-mono uppercase tracking-widest"
               />
-              <Button type="submit" size="md" disabled={code.length < 4} className="h-11">
+              <Button type="submit" size="lg" disabled={code.length < 4}>
                 加入
               </Button>
             </form>
           </div>
           {showOptions ? (
             <div className="space-y-4 border-t border-white/[0.06] p-4">
-              <label className="flex items-center gap-3 text-sm">
-                <span className="w-20 shrink-0 text-muted">房间名称</span>
-                <Input
-                  placeholder="留空则随机取一个有意境的名字"
-                  value={roomName}
-                  onChange={(e) => setRoomName(e.target.value)}
-                  maxLength={30}
-                />
-              </label>
               <RoomOptionsForm value={options} onChange={setOptions} />
             </div>
           ) : (
