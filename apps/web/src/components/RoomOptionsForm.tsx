@@ -1,5 +1,6 @@
 'use client';
 import { type RoomOptions, DEFAULT_ROOM_OPTIONS } from '@poker/protocol';
+import { Select } from './ui';
 
 const TIMEOUTS: RoomOptions['turnTimeoutSec'][] = [0, 20, 40, 60];
 const DECLARE: RoomOptions['declareWindowSec'][] = [3, 6, 10, 15];
@@ -15,30 +16,46 @@ export function RoomOptionsForm({
 }) {
   const set = <K extends keyof RoomOptions>(k: K, v: RoomOptions[K]) =>
     onChange({ ...value, [k]: v });
-  const check = (k: 'cardCounter' | 'undo' | 'hint', label: string, desc: string) => (
-    <label className="flex cursor-pointer items-start gap-2 text-sm">
-      <input
-        type="checkbox"
-        className="mt-1"
-        disabled={disabled}
-        checked={value[k]}
-        onChange={(e) => set(k, e.target.checked)}
-      />
-      <span>
+  const Toggle = ({
+    k,
+    label,
+    desc,
+  }: {
+    k: 'cardCounter' | 'undo' | 'hint';
+    label: string;
+    desc: string;
+  }) => (
+    <label className="flex cursor-pointer items-center justify-between gap-3 rounded-lg px-1 py-1">
+      <span className="text-sm">
         {label}
-        <span className="block text-xs text-white/50">{desc}</span>
+        <span className="block text-xs text-faint">{desc}</span>
       </span>
+      <button
+        type="button"
+        role="switch"
+        aria-checked={value[k]}
+        disabled={disabled}
+        onClick={() => set(k, !value[k])}
+        className={`relative h-5 w-9 shrink-0 rounded-full transition-colors ${value[k] ? 'bg-accent' : 'bg-white/15'} disabled:opacity-40`}
+      >
+        <span
+          className={`absolute top-0.5 h-4 w-4 rounded-full bg-white transition-[left] ${value[k] ? 'left-[18px]' : 'left-0.5'}`}
+        />
+      </button>
     </label>
   );
-  const select = <K extends 'turnTimeoutSec' | 'declareWindowSec' | 'kittyBonus'>(
-    k: K,
-    label: string,
-    opts: { v: RoomOptions[K]; t: string }[],
-  ) => (
-    <label className="flex items-center justify-between gap-2 text-sm">
+  const Row = <K extends 'turnTimeoutSec' | 'declareWindowSec' | 'kittyBonus'>({
+    k,
+    label,
+    opts,
+  }: {
+    k: K;
+    label: string;
+    opts: { v: RoomOptions[K]; t: string }[];
+  }) => (
+    <label className="flex items-center justify-between gap-3 px-1 py-1 text-sm">
       <span>{label}</span>
-      <select
-        className="rounded bg-white/10 px-2 py-1 text-sm"
+      <Select
         disabled={disabled}
         value={String(value[k])}
         onChange={(e) => {
@@ -51,42 +68,43 @@ export function RoomOptionsForm({
             {o.t}
           </option>
         ))}
-      </select>
+      </Select>
     </label>
   );
   return (
-    <div className="grid gap-3 sm:grid-cols-2">
-      {check('cardCounter', '记牌器', '随时查看还没出现的牌')}
-      {check('undo', '允许悔牌', '撤回自己刚出的牌，需对方两人同意（机器人自动同意）')}
-      {check('hint', '允许提示', '出牌/扣底时可用 AI 提示')}
-      {select(
-        'turnTimeoutSec',
-        '出牌倒计时',
-        TIMEOUTS.map((v) => ({ v, t: v === 0 ? '不限时' : `${v} 秒（超时机器人代打）` })),
-      )}
-      {select(
-        'declareWindowSec',
-        '亮主窗口',
-        DECLARE.map((v) => ({ v, t: `${v} 秒` })),
-      )}
-      {select('kittyBonus', '底牌翻倍', [
-        { v: 'exp' as const, t: '拖拉机 2ⁿ 倍' },
-        { v: 'double' as const, t: '固定 ×2' },
-      ])}
+    <div className="grid gap-x-8 gap-y-2 sm:grid-cols-2">
+      <Toggle k="cardCounter" label="记牌器" desc="随时查看还没出现的牌" />
+      <Toggle k="undo" label="允许悔牌" desc="撤回刚出的牌，需对方两人同意" />
+      <Toggle k="hint" label="允许提示" desc="出牌/扣底时可用 AI 提示" />
+      <Row
+        k="turnTimeoutSec"
+        label="出牌倒计时"
+        opts={TIMEOUTS.map((v) => ({ v, t: v === 0 ? '不限时' : `${v} 秒` }))}
+      />
+      <Row k="declareWindowSec" label="亮主窗口" opts={DECLARE.map((v) => ({ v, t: `${v} 秒` }))} />
+      <Row
+        k="kittyBonus"
+        label="底牌翻倍"
+        opts={[
+          { v: 'exp' as const, t: '拖拉机 2ⁿ' },
+          { v: 'double' as const, t: '固定 ×2' },
+        ]}
+      />
     </div>
   );
 }
 
 export function optionsSummary(o: RoomOptions): string {
-  const parts = [
+  return [
     o.cardCounter ? '记牌器' : null,
     o.undo ? '悔牌' : null,
     o.hint ? '提示' : '无提示',
     o.turnTimeoutSec ? `${o.turnTimeoutSec}s 倒计时` : '不限时',
     `亮主 ${o.declareWindowSec}s`,
     o.kittyBonus === 'exp' ? '底牌 2ⁿ' : '底牌 ×2',
-  ];
-  return parts.filter(Boolean).join(' · ');
+  ]
+    .filter(Boolean)
+    .join(' · ');
 }
 
 export { DEFAULT_ROOM_OPTIONS };

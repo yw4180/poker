@@ -46,7 +46,7 @@ export function CardCounter({ game }: { game: GameView }) {
           </div>
         );
       })}
-      <div className="text-white/40">含底牌 {game.kittyCount} 张（仅庄家已知）</div>
+      <div className="text-faint">含底牌 {game.kittyCount} 张（仅庄家已知）</div>
     </div>
   );
 }

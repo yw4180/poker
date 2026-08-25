@@ -1,0 +1,2 @@
+Card images rasterized from saulspatz/SVGCards (https://github.com/saulspatz/SVGCards),
+released into the public domain by the author. Jokers by Byron Knoll (public domain).

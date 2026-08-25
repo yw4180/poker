@@ -1,19 +1,19 @@
 'use client';
-import Link from 'next/link';
 import { useParams, useRouter } from 'next/navigation';
 import { useEffect, useState } from 'react';
+import { AppShell } from '@/components/AppShell';
 import { AuthGate } from '@/components/AuthGate';
 import { CardCounter } from '@/components/CardCounter';
 import { Chat } from '@/components/Chat';
-import { GameLog } from '@/components/GameLog';
-import { UndoBanner } from '@/components/UndoBanner';
 import { Controls } from '@/components/Controls';
+import { GameLog } from '@/components/GameLog';
 import { Hand } from '@/components/Hand';
 import { LastTrick } from '@/components/LastTrick';
 import { Lobby } from '@/components/Lobby';
 import { RoundEndModal } from '@/components/RoundEndModal';
 import { InfoBar, Table } from '@/components/Table';
-import { Button } from '@/components/ui';
+import { UndoBanner } from '@/components/UndoBanner';
+import { Button, Code, Panel, Tag } from '@/components/ui';
 import { request } from '@/lib/socket';
 import { useStore } from '@/lib/store';
 
@@ -29,7 +29,7 @@ function RoomPage({ user }: { user: { id: string; name: string } }) {
   const kittyNewIds = useStore((s) => s.kittyNewIds);
   const showLastTrick = useStore((s) => s.showLastTrick);
   const enterRoom = useStore((s) => s.enterRoom);
-  const [showCounter, setShowCounter] = useState(false);
+  const [showCounter, setShowCounter] = useState(true);
 
   useEffect(() => enterRoom(id.toUpperCase()), [enterRoom, id]);
   useEffect(() => bind(), [bind]);
@@ -51,9 +51,18 @@ function RoomPage({ user }: { user: { id: string; name: string } }) {
 
   if (!room || room.id !== id.toUpperCase()) {
     return (
-      <div className="p-8 text-center text-white/60">
-        {connected ? '进入房间中…' : '连接服务器中…'}
-      </div>
+      <AppShell
+        wide
+        right={
+          <Button size="sm" variant="ghost" onClick={leave}>
+            离开
+          </Button>
+        }
+      >
+        <div className="py-24 text-center text-sm text-muted">
+          {connected ? '进入房间中…' : '连接服务器中…'}
+        </div>
+      </AppShell>
     );
   }
 
@@ -65,33 +74,59 @@ function RoomPage({ user }: { user: { id: string; name: string } }) {
     (game.actor === mySeat || game.phase === 'dealing' || game.phase === 'declaring');
   const roundOver = game && (game.phase === 'roundEnd' || game.phase === 'finished');
 
+  const side = (
+    <div className="flex flex-col gap-3 lg:sticky lg:top-16 lg:max-h-[calc(100vh-5rem)]">
+      {inGame && room.options.cardCounter && (
+        <Panel
+          title="记牌器"
+          actions={
+            <Button size="sm" variant="ghost" onClick={() => setShowCounter(!showCounter)}>
+              {showCounter ? '收起' : '展开'}
+            </Button>
+          }
+        >
+          {showCounter && (
+            <div className="px-4 py-3">
+              <CardCounter game={game} />
+            </div>
+          )}
+        </Panel>
+      )}
+      <GameLog className="h-44 lg:min-h-0 lg:flex-1" />
+      <Chat className="h-64 lg:min-h-0 lg:flex-1" />
+    </div>
+  );
+
   return (
-    <div className="mx-auto max-w-6xl space-y-3 p-2 sm:p-4">
-      <header className="flex items-center justify-between text-sm">
-        <div className="flex items-center gap-3">
-          <Link href="/" className="text-white/60 hover:text-white">
-            ← 大厅
-          </Link>
-          <span className="font-semibold">{room.name}</span>
-          <span className="tracking-widest text-amber-300">{room.id}</span>
-          {!connected && <span className="text-red-400">连接断开，重连中…</span>}
-        </div>
-        <Button variant="ghost" onClick={leave}>
+    <AppShell
+      wide
+      center={
+        <span className="flex items-center gap-2">
+          <span className="truncate">{room.name}</span>
+          <Code className="text-xs">{room.id}</Code>
+          {!connected && <Tag tone="warn">重连中…</Tag>}
+        </span>
+      }
+      right={
+        <Button size="sm" variant="ghost" onClick={leave}>
           离开房间
         </Button>
-      </header>
-
-      <div className="pointer-events-none fixed left-1/2 top-3 z-50 -translate-x-1/2 space-y-2">
+      }
+    >
+      <div className="pointer-events-none fixed bottom-4 right-4 z-50 flex flex-col items-end gap-1.5">
         {notices.map((n) => (
-          <div key={n.id} className="rounded-md bg-black/80 px-3 py-2 text-sm shadow">
+          <div
+            key={n.id}
+            className="rounded-lg border border-white/10 bg-elev-2/95 px-3 py-1.5 text-[13px] shadow-lg backdrop-blur"
+          >
             {n.text}
           </div>
         ))}
       </div>
 
       {inGame ? (
-        <div className="grid gap-3 lg:grid-cols-[1fr_280px]">
-          <div className="space-y-2">
+        <div className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_300px]">
+          <div className="space-y-3">
             <InfoBar game={game} />
             <Table game={game} room={room} />
             <UndoBanner room={room} mySeat={mySeat} />
@@ -107,46 +142,23 @@ function RoomPage({ user }: { user: { id: string; name: string } }) {
               />
             )}
           </div>
-          <div className="flex flex-col gap-3 lg:max-h-[85vh]">
-            {room.options.cardCounter && (
-              <div className="rounded-xl border border-white/10 bg-neutral-800/80">
-                <button
-                  type="button"
-                  className="flex w-full items-center justify-between px-3 py-1.5 text-xs font-semibold text-white/70"
-                  onClick={() => setShowCounter(!showCounter)}
-                >
-                  <span>记牌器</span>
-                  <span>{showCounter ? '收起' : '展开'}</span>
-                </button>
-                {showCounter && (
-                  <div className="border-t border-white/10 p-3">
-                    <CardCounter game={game} />
-                  </div>
-                )}
-              </div>
-            )}
-            <GameLog className="h-40 lg:flex-1 lg:min-h-0" />
-            <Chat className="h-56 lg:flex-1 lg:min-h-0" />
-          </div>
+          {side}
           {roundOver && <RoundEndModal game={game} room={room} userId={user.id} />}
         </div>
       ) : (
-        <div className="grid gap-4 lg:grid-cols-[1fr_280px]">
+        <div className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_300px]">
           <div>
             {game && game.phase === 'finished' && (
-              <div className="mb-4 rounded-lg bg-amber-500/20 p-3 text-center">
+              <div className="mb-4 rounded-xl border border-accent/30 bg-accent/10 p-3 text-center text-sm">
                 游戏结束，{game.winner === 0 ? '1/3 队' : '2/4 队'} 获胜！
               </div>
             )}
             <Lobby room={room} userId={user.id} />
           </div>
-          <div className="flex flex-col gap-3">
-            <GameLog className="h-40" />
-            <Chat className="h-56" />
-          </div>
+          {side}
         </div>
       )}
-    </div>
+    </AppShell>
   );
 }
 

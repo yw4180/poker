@@ -1,6 +1,6 @@
 'use client';
 import { useEffect, useRef, useState } from 'react';
-import { Button, Input } from './ui';
+import { Button, Input, Panel } from './ui';
 import { request } from '@/lib/socket';
 import { useStore } from '@/lib/store';
 
@@ -22,24 +22,22 @@ export function Chat({ className = '' }: { className?: string }) {
     setText('');
   };
   return (
-    <div
-      className={`flex flex-col rounded-xl border border-white/10 bg-neutral-800/80 ${className}`}
-    >
-      <div className="border-b border-white/10 px-3 py-1.5 text-xs font-semibold text-white/70">
-        聊天
-      </div>
-      <div ref={listRef} className="flex-1 space-y-1 overflow-y-auto p-3 text-sm">
+    <Panel title="聊天" className={`flex flex-col ${className}`}>
+      <div ref={listRef} className="flex-1 space-y-1.5 overflow-y-auto px-4 py-3 text-sm">
+        {chat.length === 0 && <div className="text-[13px] text-faint">还没有人说话</div>}
         {chat.map((m, i) => (
           <div key={`${m.at}-${i}`} className="flex gap-2">
-            <span className="shrink-0 text-[11px] leading-5 text-white/35">{fmt(m.at)}</span>
-            <span>
-              <span className="text-amber-300">{m.name}</span>：{m.text}
+            <span className="shrink-0 font-mono text-[11px] leading-5 text-faint">{fmt(m.at)}</span>
+            <span className="min-w-0 break-words">
+              <span className="font-medium text-accent">{m.name}</span>
+              <span className="text-faint"> · </span>
+              {m.text}
             </span>
           </div>
         ))}
       </div>
       <form
-        className="flex gap-2 border-t border-white/10 p-2"
+        className="flex gap-2 border-t border-white/[0.06] p-2"
         onSubmit={(e) => {
           e.preventDefault();
           void send();
@@ -51,10 +49,10 @@ export function Chat({ className = '' }: { className?: string }) {
           placeholder="说点什么…"
           maxLength={200}
         />
-        <Button type="submit" className="shrink-0 whitespace-nowrap">
+        <Button type="submit" variant="primary" className="shrink-0">
           发送
         </Button>
       </form>
-    </div>
+    </Panel>
   );
 }

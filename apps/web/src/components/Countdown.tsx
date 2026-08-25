@@ -1,7 +1,6 @@
 'use client';
 import { useEffect, useState } from 'react';
 
-/** 倒计时进度条：deadlineAt 为时间戳 */
 export function Countdown({
   deadlineAt,
   totalMs = 4000,
@@ -18,16 +17,20 @@ export function Countdown({
   }, []);
   const left = Math.max(0, deadlineAt - now);
   const pct = Math.min(100, (left / totalMs) * 100);
+  const urgent = left < 5000;
   return (
-    <div className="w-40 text-center text-xs text-white/80">
+    <div className="flex items-center gap-2 text-xs text-muted">
       {label && (
-        <div className="mb-1">
-          {label} {Math.ceil(left / 1000)}s
-        </div>
+        <span>
+          {label}{' '}
+          <span className={`font-mono ${urgent ? 'text-red-300' : 'text-fg'}`}>
+            {Math.ceil(left / 1000)}s
+          </span>
+        </span>
       )}
-      <div className="h-1.5 w-full overflow-hidden rounded bg-black/40">
+      <div className="h-1 w-24 overflow-hidden rounded-full bg-white/10">
         <div
-          className="h-full bg-amber-400 transition-[width] duration-100"
+          className={`h-full transition-[width] duration-100 ${urgent ? 'bg-red-400' : 'bg-accent'}`}
           style={{ width: `${pct}%` }}
         />
       </div>

@@ -39,3 +39,7 @@ pnpm typecheck
 ## 部署
 
 见 `deploy/README.md`。
+
+## 素材
+
+牌面图片来自 [saulspatz/SVGCards](https://github.com/saulspatz/SVGCards)（公有领域，王牌作者 Byron Knoll），已栅格化为 `apps/web/public/cards/*.webp`。

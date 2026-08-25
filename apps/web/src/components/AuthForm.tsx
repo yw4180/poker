@@ -2,7 +2,7 @@
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useState } from 'react';
-import { Button, Input, Panel } from './ui';
+import { Button, Input } from './ui';
 import { signIn, signUp } from '@/lib/auth-client';
 
 export function AuthForm({ mode }: { mode: 'login' | 'register' }) {
@@ -27,9 +27,17 @@ export function AuthForm({ mode }: { mode: 'login' | 'register' }) {
   };
 
   return (
-    <div className="mx-auto mt-24 max-w-sm">
-      <Panel>
-        <h1 className="mb-4 text-xl font-bold">{mode === 'login' ? '登录' : '注册'}</h1>
+    <div className="flex min-h-screen items-center justify-center p-4">
+      <div className="w-full max-w-sm">
+        <div className="mb-8 flex flex-col items-center gap-3">
+          <span className="grid h-12 w-12 place-items-center rounded-2xl bg-accent text-2xl text-[#06281c] shadow-[0_8px_24px_-8px_rgba(16,185,129,.6)]">
+            ♠
+          </span>
+          <h1 className="text-xl font-semibold tracking-tight">
+            {mode === 'login' ? '欢迎回来' : '创建账号'}
+          </h1>
+          <p className="text-sm text-muted">和朋友一起打升级</p>
+        </div>
         <form onSubmit={submit} className="space-y-3">
           {mode === 'register' && (
             <Input
@@ -55,38 +63,49 @@ export function AuthForm({ mode }: { mode: 'login' | 'register' }) {
             required
             minLength={6}
           />
-          {error && <div className="text-sm text-red-400">{error}</div>}
-          <Button type="submit" disabled={busy} className="w-full">
+          {error && (
+            <div className="rounded-lg bg-red-500/10 px-3 py-2 text-sm text-red-300">{error}</div>
+          )}
+          <Button type="submit" variant="primary" size="lg" disabled={busy} className="w-full">
             {mode === 'login' ? '登录' : '注册'}
           </Button>
         </form>
+        <div className="my-4 flex items-center gap-3 text-xs text-faint">
+          <span className="h-px flex-1 bg-white/10" />或<span className="h-px flex-1 bg-white/10" />
+        </div>
         <Button
-          variant="ghost"
-          className="mt-3 w-full"
+          size="lg"
+          className="w-full"
           onClick={() =>
             signIn.social({ provider: 'google', callbackURL: window.location.origin + '/' })
           }
         >
+          <svg width="16" height="16" viewBox="0 0 24 24" aria-hidden>
+            <path
+              fill="currentColor"
+              d="M21.35 11.1H12v2.9h5.3c-.5 2.5-2.6 3.9-5.3 3.9a5.9 5.9 0 1 1 0-11.8c1.5 0 2.8.5 3.8 1.5l2.1-2.1A9 9 0 1 0 12 21c5.2 0 8.6-3.6 8.6-8.8 0-.4 0-.8-.1-1.1Z"
+            />
+          </svg>
           使用 Google 登录
         </Button>
-        <div className="mt-4 text-center text-sm text-white/60">
+        <p className="mt-6 text-center text-sm text-muted">
           {mode === 'login' ? (
             <>
               没有账号？
-              <Link className="text-amber-300" href="/register">
+              <Link className="text-accent hover:underline" href="/register">
                 注册
               </Link>
             </>
           ) : (
             <>
               已有账号？
-              <Link className="text-amber-300" href="/login">
+              <Link className="text-accent hover:underline" href="/login">
                 登录
               </Link>
             </>
           )}
-        </div>
-      </Panel>
+        </p>
+      </div>
     </div>
   );
 }
