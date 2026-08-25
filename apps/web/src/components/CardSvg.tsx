@@ -255,21 +255,10 @@ function Joker({ big }: { big: boolean }) {
         JOKER
       </text>
       <path
-        d="M50 40 L56 60 L77 60 L60 72 L66 92 L50 80 L34 92 L40 72 L23 60 L44 60Z"
+        d="M50 48 L57 69 L79 69 L61 82 L68 103 L50 90 L32 103 L39 82 L21 69 L43 69Z"
         fill="#fff"
         fillOpacity="0.95"
       />
-      <text
-        x="50"
-        y="118"
-        textAnchor="middle"
-        fontSize="16"
-        fontWeight="700"
-        fontFamily="Inter, ui-sans-serif, system-ui"
-        fill="#fff"
-      >
-        {big ? '大王' : '小王'}
-      </text>
     </g>
   );
 }

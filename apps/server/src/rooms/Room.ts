@@ -26,6 +26,7 @@ import {
   DEFAULT_ROOM_OPTIONS,
 } from '@poker/protocol';
 import { randomInt } from 'node:crypto';
+import { botAvatarUrl, botLine, randomBotName } from '../names.js';
 
 /** 客户端提交的选项补丁（zod partial 会带 undefined） */
 export type RoomOptionsPatch = { [K in keyof RoomOptions]?: RoomOptions[K] | undefined };
@@ -242,10 +243,11 @@ export class Room {
     this.requireHost(byUserId);
     if (this.status !== 'lobby') throw new Error('对局进行中不能添加机器人');
     if (this.seats[seat]) throw new Error('该座位已有人');
+    const name = randomBotName(this.seats.filter((s): s is Seat => !!s).map((s) => s.name));
     this.seats[seat] = {
       userId: `bot:${this.id}:${seat}`,
-      name: `机器人${seat + 1}`,
-      avatar: null,
+      name,
+      avatar: botAvatarUrl(name),
       ready: true,
       connected: true,
       bot: true,
@@ -370,7 +372,10 @@ export class Room {
     this.game = result.state;
     this.armTurnTimer();
     this.broadcastGame();
-    for (const ev of result.events) this.sink.gameEvent(this, ev);
+    for (const ev of result.events) {
+      this.sink.gameEvent(this, ev);
+      this.botChatter(ev);
+    }
     if (this.game.phase === 'finished') {
       this.status = 'lobby';
       for (const s of this.seats) if (s && !s.bot) s.ready = false;
@@ -457,6 +462,36 @@ export class Room {
     if (!this.game) return;
     this.history.push({ seat, state: this.game });
     if (this.history.length > 8) this.history.shift();
+  }
+
+  /** 机器人偶尔说两句，增加点人气 */
+  private botChatter(ev: GameEvent) {
+    const say = (seat: number, text: string) => {
+      const s = this.seats[seat];
+      if (!s?.bot || !s.userId.startsWith('bot:')) return;
+      setTimeout(
+        () => this.sink.chat(this, { userId: s.userId, name: s.name, text, at: Date.now() }),
+        400 + Math.random() * 800,
+      );
+    };
+    if (ev.type === 'trickWon' && ev.points >= 20 && Math.random() < 0.35)
+      say(ev.winner, botLine('bigTrick'));
+    if (ev.type === 'roundEnded') {
+      const r = ev.result;
+      const winners = [0, 1, 2, 3].filter((s) => s % 2 === r.winningTeam);
+      const losers = [0, 1, 2, 3].filter((s) => s % 2 !== r.winningTeam);
+      const attackersKilledKitty = r.kittyMultiplier > 1 && r.kittyPoints > 0;
+      const w = winners[Math.floor(Math.random() * 2)]!;
+      const l = losers[Math.floor(Math.random() * 2)]!;
+      if (Math.random() < 0.7)
+        say(
+          w,
+          attackersKilledKitty && r.winningTeam !== this.game!.dealer! % 2
+            ? botLine('killKitty')
+            : botLine('roundWin'),
+        );
+      if (Math.random() < 0.5) say(l, botLine('roundLose'));
+    }
   }
 
   private systemMessage(text: string) {

@@ -13,8 +13,11 @@ export function cardLabel(c: Card): string {
 /** 牌尺寸：宽高比 2:3 */
 export const CARD_SIZE = {
   sm: 'w-9 sm:w-10',
+  /** 桌面出牌区：手机小、电脑接近手牌大小 */
+  table: 'w-10 sm:w-[3.75rem]',
   md: 'w-14 sm:w-[4.25rem]',
 } as const;
+export type CardSize = keyof typeof CARD_SIZE;
 
 export function PlayingCard({
   card,
@@ -22,14 +25,16 @@ export function PlayingCard({
   highlight = false,
   onClick,
   small = false,
+  size: sizeProp,
 }: {
   card: Card;
   selected?: boolean;
   highlight?: boolean;
   onClick?: () => void;
   small?: boolean;
+  size?: CardSize;
 }) {
-  const size = small ? CARD_SIZE.sm : CARD_SIZE.md;
+  const size = CARD_SIZE[sizeProp ?? (small ? 'sm' : 'md')];
   return (
     <button
       type="button"

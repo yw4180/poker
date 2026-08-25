@@ -5,6 +5,8 @@ import { eq } from 'drizzle-orm';
 import { mkdir } from 'node:fs/promises';
 import path from 'node:path';
 import sharp from 'sharp';
+import { createAvatar } from '@dicebear/core';
+import { adventurer } from '@dicebear/collection';
 import { createDb, gamePlayers, games, user as userTable } from '@poker/db';
 import Fastify from 'fastify';
 import { nanoid } from 'nanoid';
@@ -50,6 +52,18 @@ async function main() {
   });
 
   app.get('/api/health', async () => ({ ok: true }));
+
+  /** 机器人头像：DiceBear adventurer 风格，按名字生成（CC BY 4.0，见 README） */
+  app.get<{ Params: { seed: string } }>('/api/bot-avatar/:seed', async (request, reply) => {
+    const seed = decodeURIComponent(request.params.seed.replace(/\.svg$/, ''));
+    const svg = createAvatar(adventurer, {
+      seed,
+      backgroundColor: ['b6e3f4', 'c0aede', 'd1d4f9', 'ffd5dc', 'ffdfbf'],
+      radius: 50,
+    }).toString();
+    reply.header('cache-control', 'public, max-age=604800, immutable');
+    return reply.type('image/svg+xml').send(svg);
+  });
 
   /** 上传头像：multipart 字段 file；压成 128x128 webp，写入 user.image */
   app.post('/api/avatar', async (request, reply) => {

@@ -97,8 +97,8 @@ export function Table({ game, room }: { game: GameView; room: RoomView }) {
         className={`flex rounded-lg p-1 transition-opacity ${won ? 'ring-2 ring-amber-300/80' : ''} ${showingLast && !won ? 'opacity-60' : ''}`}
       >
         {play.cards.map((c, i) => (
-          <div key={c.id} className={i === 0 ? '' : '-ml-5'}>
-            <PlayingCard card={c} small />
+          <div key={c.id} className={i === 0 ? '' : '-ml-5 sm:-ml-7'}>
+            <PlayingCard card={c} size="table" />
           </div>
         ))}
       </div>

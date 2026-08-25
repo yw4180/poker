@@ -110,7 +110,7 @@ export function attachSocket(http: HttpServer, deps: SocketDeps): { io: IO; room
     };
 
     on('room:create', (p) => {
-      const room = rooms.create(user.id, p.name ?? `${user.name}的房间`, p.options ?? {});
+      const room = rooms.create(user.id, p.name, p.options ?? {});
       joinRoom(room.id);
       return { roomId: room.id };
     });

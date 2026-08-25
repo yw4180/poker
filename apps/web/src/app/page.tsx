@@ -41,7 +41,7 @@ function Home({ user }: { user: { id: string; name: string } }) {
   }, []);
 
   const create = async () => {
-    const r = await request('room:create', { name: `${user.name}的房间`, options });
+    const r = await request('room:create', { options });
     if (r.ok) router.push(`/room/${(r.data as { roomId: string }).roomId}`);
     else notify(r.error ?? '创建失败');
   };

@@ -1,4 +1,5 @@
 import { customAlphabet } from 'nanoid';
+import { randomRoomName } from '../names.js';
 import {
   Room,
   type RoomOptionsPatch,
@@ -20,10 +21,10 @@ export class RoomManager {
     private readonly idleTtlMs = 30 * 60 * 1000,
   ) {}
 
-  create(hostId: string, name: string, options: RoomOptionsPatch = {}): Room {
+  create(hostId: string, name: string | undefined, options: RoomOptionsPatch = {}): Room {
     let id = genId();
     while (this.rooms.has(id)) id = genId();
-    const room = new Room(id, name, hostId, this.sink, this.timings, options);
+    const room = new Room(id, name || randomRoomName(), hostId, this.sink, this.timings, options);
     this.rooms.set(id, room);
     return room;
   }
