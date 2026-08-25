@@ -86,6 +86,8 @@ export interface RoomView {
   id: string;
   name: string;
   hostId: string;
+  /** 房主昵称，用于“xx的房间 · 名称” */
+  hostName: string;
   status: 'lobby' | 'playing';
   options: RoomOptions;
   undoRequest: UndoRequestView | null;

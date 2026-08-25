@@ -7,6 +7,7 @@ import { AuthGate } from '@/components/AuthGate';
 import { AvatarUploader } from '@/components/AvatarUploader';
 import { RoomOptionsForm, optionsSummary } from '@/components/RoomOptionsForm';
 import { Button, Code, Input, Panel, Tag } from '@/components/ui';
+import { roomTitle } from '@/lib/room-name';
 import { API_URL } from '@/lib/api';
 import { signOut } from '@/lib/auth-client';
 import { request } from '@/lib/socket';
@@ -15,6 +16,7 @@ import { useStore } from '@/lib/store';
 interface RoomSummary {
   id: string;
   name: string;
+  hostName: string;
   status: string;
   players: number;
 }
@@ -27,6 +29,7 @@ function Home({ user }: { user: { id: string; name: string } }) {
   const [rooms, setRooms] = useState<RoomSummary[]>([]);
   const [showOptions, setShowOptions] = useState(false);
   const [options, setOptions] = useState<RoomOptions>(DEFAULT_ROOM_OPTIONS);
+  const [roomName, setRoomName] = useState('');
 
   useEffect(() => bind(), [bind]);
   useEffect(() => {
@@ -41,7 +44,8 @@ function Home({ user }: { user: { id: string; name: string } }) {
   }, []);
 
   const create = async () => {
-    const r = await request('room:create', { options });
+    const name = roomName.trim();
+    const r = await request('room:create', name ? { name, options } : { options }); // 留空则服务器随机取名
     if (r.ok) router.push(`/room/${(r.data as { roomId: string }).roomId}`);
     else notify(r.error ?? '创建失败');
   };
@@ -64,9 +68,16 @@ function Home({ user }: { user: { id: string; name: string } }) {
       }
     >
       <div className="space-y-5">
-        <div className="pt-4">
-          <h1 className="text-2xl font-semibold tracking-tight">开一桌升级</h1>
-          <p className="mt-1 text-sm text-muted">4 人 2 副牌拖拉机 · 人不够可以让机器人补位</p>
+        <div className="pb-2 pt-6">
+          <div className="text-[11px] font-medium uppercase tracking-[0.3em] text-accent">
+            升级 · 拖拉机
+          </div>
+          <h1 className="mt-2 font-serif text-4xl font-semibold leading-tight tracking-tight sm:text-5xl">
+            今晚，开一桌
+          </h1>
+          <p className="mt-3 text-[15px] text-muted">
+            两副牌，四个人，一整晚。缺人有机器人陪打，掉线自动托管。
+          </p>
         </div>
 
         <Panel>
@@ -98,7 +109,16 @@ function Home({ user }: { user: { id: string; name: string } }) {
             </form>
           </div>
           {showOptions ? (
-            <div className="border-t border-white/[0.06] p-4">
+            <div className="space-y-4 border-t border-white/[0.06] p-4">
+              <label className="flex items-center gap-3 text-sm">
+                <span className="w-20 shrink-0 text-muted">房间名称</span>
+                <Input
+                  placeholder="留空则随机取一个有意境的名字"
+                  value={roomName}
+                  onChange={(e) => setRoomName(e.target.value)}
+                  maxLength={30}
+                />
+              </label>
               <RoomOptionsForm value={options} onChange={setOptions} />
             </div>
           ) : (
@@ -116,7 +136,7 @@ function Home({ user }: { user: { id: string; name: string } }) {
               {rooms.map((r) => (
                 <li key={r.id} className="flex items-center gap-3 px-4 py-2.5 text-sm">
                   <Code>{r.id}</Code>
-                  <span className="min-w-0 flex-1 truncate">{r.name}</span>
+                  <span className="min-w-0 flex-1 truncate">{roomTitle(r)}</span>
                   <Tag tone={r.status === 'playing' ? 'accent' : 'default'}>
                     {r.status === 'playing' ? '游戏中' : '等待中'}
                   </Tag>

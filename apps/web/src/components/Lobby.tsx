@@ -5,6 +5,7 @@ import { Avatar } from './Avatar';
 import { RoomOptionsForm, optionsSummary } from './RoomOptionsForm';
 import { Button, Code, Panel, Tag } from './ui';
 import { request } from '@/lib/socket';
+import { roomTitle } from '@/lib/room-name';
 import { useStore } from '@/lib/store';
 
 export function Lobby({ room, userId }: { room: RoomView; userId: string }) {
@@ -21,7 +22,8 @@ export function Lobby({ room, userId }: { room: RoomView; userId: string }) {
     <div className="mx-auto max-w-2xl space-y-4">
       <div className="flex flex-wrap items-end justify-between gap-3">
         <div>
-          <div className="text-xs text-faint">房间码 · 发给朋友即可加入</div>
+          <div className="text-sm text-muted">{roomTitle(room)}</div>
+          <div className="mt-1 text-xs text-faint">房间码 · 发给朋友即可加入</div>
           <Code className="text-3xl font-semibold">{room.id}</Code>
         </div>
         {isHost ? (

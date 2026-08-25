@@ -67,7 +67,7 @@ export interface RoomTimings {
   trickPauseMs: number;
 }
 export const DEFAULT_TIMINGS: RoomTimings = {
-  dealCardMs: 120,
+  dealCardMs: 260,
   declareWindowMs: 4000,
   botDelayMs: 700,
   trickPauseMs: 1200,
@@ -97,6 +97,7 @@ export class Room {
     public readonly id: string,
     public name: string,
     public hostId: string,
+    public hostName: string,
     private readonly sink: RoomSink,
     private readonly timings: RoomTimings = DEFAULT_TIMINGS,
     options: RoomOptionsPatch = {},
@@ -120,6 +121,7 @@ export class Room {
       id: this.id,
       name: this.name,
       hostId: this.hostId,
+      hostName: this.hostName,
       status: this.status,
       options: this.options,
       undoRequest: this.undoRequest,
@@ -209,7 +211,10 @@ export class Room {
     this.spectators.delete(userId);
     if (this.hostId === userId) {
       const next = this.humans()[0] ?? null;
-      if (next) this.hostId = next.userId;
+      if (next) {
+        this.hostId = next.userId;
+        this.hostName = next.name;
+      }
     }
     this.broadcastRoom();
   }
@@ -461,7 +466,6 @@ export class Room {
   private pushHistory(seat: number) {
     if (!this.game) return;
     this.history.push({ seat, state: this.game });
-    if (this.history.length > 8) this.history.shift();
   }
 
   /** 机器人偶尔说两句，增加点人气 */
@@ -504,17 +508,14 @@ export class Room {
     if (seat < 0) throw new Error('你不在座位上');
     if (!this.game || this.game.phase !== 'playing') throw new Error('现在不能悔牌');
     if (this.undoRequest) throw new Error('已有悔牌请求进行中');
-    const last = this.history[this.history.length - 1];
-    if (!last || last.seat !== seat) throw new Error('只能撤回你刚出的牌，且中间不能有别人出牌');
-    // 快照之后如果别人已经出牌，则不允许
-    const playsSince = this.playsSince(last.state);
-    if (playsSince !== 1) throw new Error('你出牌之后已有人跟牌，不能悔牌');
+    const idx = this.history.map((h) => h.seat).lastIndexOf(seat);
+    if (idx < 0) throw new Error('本局你还没有出过牌');
     const required = [0, 1, 2, 3].filter((s) => s % 2 !== seat % 2);
     const approved = required.filter((s) => this.seats[s]?.bot);
     this.undoRequest = {
       seat,
       name: this.seats[seat]!.name,
-      expiresAt: Date.now() + 30_000,
+      expiresAt: Date.now() + 60_000,
       approved,
       required,
     };
@@ -525,17 +526,9 @@ export class Room {
         this.cancelUndo();
         this.broadcastRoom();
       }
-    }, 30_000);
+    }, 60_000);
     this.settleUndo();
     this.broadcastRoom();
-  }
-
-  /** 从快照到现在多出了多少次出牌 */
-  private playsSince(snapshot: GameState): number {
-    const g = this.game!;
-    const count = (s: GameState) =>
-      s.tricks.reduce((n, t) => n + t.plays.length, 0) + (s.trick?.plays.length ?? 0);
-    return count(g) - count(snapshot);
   }
 
   voteUndo(userId: string, approve: boolean) {
@@ -558,8 +551,10 @@ export class Room {
     const req = this.undoRequest;
     if (!req) return;
     if (req.required.every((s) => req.approved.includes(s))) {
-      const last = this.history.pop();
+      const idx = this.history.map((h) => h.seat).lastIndexOf(req.seat);
+      const last = idx >= 0 ? this.history[idx] : undefined;
       if (last && this.game) {
+        this.history.splice(idx); // 该次出牌及其后的快照全部丢弃
         this.game = last.state;
         this.systemMessage(`${req.name} 悔牌成功`);
         this.cancelUndo();

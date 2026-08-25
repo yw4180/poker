@@ -51,7 +51,7 @@ export function Chat({ className = '' }: { className?: string }) {
       }
     >
       {quickOpen && (
-        <div className="absolute inset-x-0 top-11 z-10 border-b border-white/[0.06] bg-elev-2/95 p-2 backdrop-blur">
+        <div className="absolute inset-x-0 top-11 bottom-14 z-10 overflow-y-auto border-b border-white/[0.06] bg-elev-2/95 p-2 backdrop-blur">
           <div className="mb-2 flex flex-wrap gap-1.5">
             {EMOJI.map((e) => (
               <button

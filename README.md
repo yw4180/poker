@@ -43,4 +43,4 @@ pnpm typecheck
 ## 素材与致谢
 
 - 牌面为程序化 SVG（`apps/web/src/components/CardSvg.tsx`），无第三方素材。
-- 机器人头像由 [DiceBear](https://www.dicebear.com/) 的 **Adventurer** 风格生成（作者 Lisa Wischofsky，[CC BY 4.0](https://creativecommons.org/licenses/by/4.0/)）。
+- 机器人头像由 [DiceBear](https://www.dicebear.com/) 的 **Bottts Neutral** 风格生成（原作者 Pablo Stanley，CC0）。

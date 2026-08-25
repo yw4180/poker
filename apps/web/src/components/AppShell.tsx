@@ -7,11 +7,14 @@ export function AppShell({
   center,
   right,
   wide = false,
+  fill = false,
 }: {
   children: React.ReactNode;
   center?: React.ReactNode;
   right?: React.ReactNode;
   wide?: boolean;
+  /** 大屏下正文占满视口剩余高度，内部各自滚动 */
+  fill?: boolean;
 }) {
   return (
     <div className="flex min-h-screen flex-col">
@@ -29,7 +32,9 @@ export function AppShell({
           <div className="flex items-center gap-2">{right}</div>
         </div>
       </header>
-      <main className={`mx-auto w-full flex-1 px-4 py-5 ${wide ? 'max-w-[1400px]' : 'max-w-3xl'}`}>
+      <main
+        className={`mx-auto w-full flex-1 px-4 py-4 ${wide ? 'max-w-[1400px]' : 'max-w-3xl'} ${fill ? 'lg:h-[calc(100vh-3rem)] lg:overflow-hidden' : ''}`}
+      >
         {children}
       </main>
     </div>

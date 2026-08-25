@@ -35,6 +35,8 @@
     var(--font-inter), ui-sans-serif, -apple-system, 'PingFang SC', 'Noto Sans SC',
     'Microsoft YaHei', sans-serif;
   --font-mono: var(--font-mono), ui-monospace, SFMono-Regular, Menlo, monospace;
+  --font-serif:
+    'Songti SC', 'Noto Serif SC', 'Noto Serif CJK SC', 'Source Han Serif SC', Georgia, serif;
 }
 
 html {

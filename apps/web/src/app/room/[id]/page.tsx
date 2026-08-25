@@ -15,6 +15,7 @@ import { InfoBar, Table } from '@/components/Table';
 import { UndoBanner } from '@/components/UndoBanner';
 import { Button, Code, Panel, Tag } from '@/components/ui';
 import { request } from '@/lib/socket';
+import { roomTitle } from '@/lib/room-name';
 import { useStore } from '@/lib/store';
 
 function RoomPage({ user }: { user: { id: string; name: string } }) {
@@ -75,7 +76,7 @@ function RoomPage({ user }: { user: { id: string; name: string } }) {
   const roundOver = game && (game.phase === 'roundEnd' || game.phase === 'finished');
 
   const side = (
-    <div className="flex flex-col gap-3 lg:sticky lg:top-16 lg:max-h-[calc(100vh-5rem)]">
+    <div className="flex min-h-0 flex-col gap-3 lg:h-full">
       {inGame && room.options.cardCounter && (
         <Panel
           title="记牌器"
@@ -92,17 +93,18 @@ function RoomPage({ user }: { user: { id: string; name: string } }) {
           )}
         </Panel>
       )}
-      <GameLog className="h-44 lg:min-h-0 lg:flex-1" />
-      <Chat className="h-64 lg:min-h-0 lg:flex-1" />
+      <GameLog className="h-40 shrink-0 lg:h-auto lg:min-h-0 lg:flex-[2]" />
+      <Chat className="h-72 shrink-0 lg:h-auto lg:min-h-0 lg:flex-[3]" />
     </div>
   );
 
   return (
     <AppShell
       wide
+      fill
       center={
         <span className="flex items-center gap-2">
-          <span className="truncate">{room.name}</span>
+          <span className="truncate">{roomTitle(room)}</span>
           <Code className="text-xs">{room.id}</Code>
           {!connected && <Tag tone="warn">重连中…</Tag>}
         </span>
@@ -125,8 +127,8 @@ function RoomPage({ user }: { user: { id: string; name: string } }) {
       </div>
 
       {inGame ? (
-        <div className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_300px]">
-          <div className="space-y-3">
+        <div className="grid gap-4 lg:h-full lg:grid-cols-[minmax(0,1fr)_300px]">
+          <div className="flex min-h-0 flex-col gap-3">
             <InfoBar game={game} />
             <Table game={game} room={room} />
             <UndoBanner room={room} mySeat={mySeat} />

@@ -12,7 +12,7 @@ const fast = { dealCardMs: 1, declareWindowMs: 5, botDelayMs: 1, trickPauseMs: 1
 
 describe('Room', () => {
   it('hands a leaving player to a bot during play and gives the seat back on return', async () => {
-    const room = new Room('TEST1', 't', 'alice', sink, fast);
+    const room = new Room('TEST1', 't', 'alice', 'Alice', sink, fast);
     room.enter('alice', 'Alice');
     room.sit('alice', 0);
     for (const seat of [1, 2, 3]) room.addBot('alice', seat);
@@ -31,7 +31,7 @@ describe('Room', () => {
 
   it('broadcasts a declare deadline once dealing finishes', async () => {
     const gameState = vi.fn();
-    const room = new Room('TEST2', 't', 'alice', { ...sink, gameState }, fast);
+    const room = new Room('TEST2', 't', 'alice', 'Alice', { ...sink, gameState }, fast);
     room.enter('alice', 'Alice');
     room.sit('alice', 0);
     for (const seat of [1, 2, 3]) room.addBot('alice', seat);
@@ -45,7 +45,7 @@ describe('Room', () => {
 
 describe('autoplay toggle', () => {
   it('lets a seated player hand over to the bot and take it back', () => {
-    const room = new Room('TEST3', 't', 'alice', sink, fast);
+    const room = new Room('TEST3', 't', 'alice', 'Alice', sink, fast);
     room.enter('alice', 'Alice');
     room.sit('alice', 0);
     for (const seat of [1, 2, 3]) room.addBot('alice', seat);
@@ -65,6 +65,7 @@ describe('undo', () => {
       'TEST4',
       't',
       'alice',
+      'Alice',
       sink,
       { ...fast, botDelayMs: 30, trickPauseMs: 30 },
       { undo: true, ...extra },
@@ -113,7 +114,7 @@ describe('undo', () => {
     room.dispose();
   });
   it('rejects undo when disabled', () => {
-    const room = new Room('TEST5', 't', 'alice', sink, fast);
+    const room = new Room('TEST5', 't', 'alice', 'Alice', sink, fast);
     room.enter('alice', 'Alice');
     room.sit('alice', 0);
     expect(() => room.requestUndo('alice')).toThrow('未开启悔牌');

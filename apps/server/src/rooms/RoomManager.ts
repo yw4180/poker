@@ -21,10 +21,23 @@ export class RoomManager {
     private readonly idleTtlMs = 30 * 60 * 1000,
   ) {}
 
-  create(hostId: string, name: string | undefined, options: RoomOptionsPatch = {}): Room {
+  create(
+    hostId: string,
+    hostName: string,
+    name: string | undefined,
+    options: RoomOptionsPatch = {},
+  ): Room {
     let id = genId();
     while (this.rooms.has(id)) id = genId();
-    const room = new Room(id, name || randomRoomName(), hostId, this.sink, this.timings, options);
+    const room = new Room(
+      id,
+      name || randomRoomName(),
+      hostId,
+      hostName,
+      this.sink,
+      this.timings,
+      options,
+    );
     this.rooms.set(id, room);
     return room;
   }
