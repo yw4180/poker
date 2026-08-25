@@ -148,7 +148,7 @@ function RoomPage({ user }: { user: { id: string; name: string } }) {
           {roundOver && <RoundEndModal game={game} room={room} userId={user.id} />}
         </div>
       ) : (
-        <div className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_300px]">
+        <div className="grid gap-4 lg:h-full lg:grid-cols-[minmax(0,1fr)_300px]">
           <div>
             {game && game.phase === 'finished' && (
               <div className="mb-4 rounded-xl border border-accent/30 bg-accent/10 p-3 text-center text-sm">
