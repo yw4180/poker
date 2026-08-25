@@ -138,7 +138,7 @@ export function Table({ game, room }: { game: GameView; room: RoomView }) {
   );
 
   return (
-    <div className="felt relative mx-auto grid h-[min(52vh,540px)] w-full grid-cols-[minmax(84px,1fr)_2fr_minmax(84px,1fr)] grid-rows-[auto_1fr_auto] rounded-2xl p-3">
+    <div className="felt relative mx-auto grid h-[min(56vh,600px)] w-full grid-cols-[minmax(84px,1fr)_2fr_minmax(84px,1fr)] grid-rows-[auto_minmax(0,1fr)_auto] overflow-hidden rounded-2xl p-3">
       <div className="col-start-2 row-start-1 flex justify-center">{seatBox(top)}</div>
       <div className="col-start-1 row-start-2 flex items-center justify-center">
         {seatBox(left)}
@@ -147,7 +147,7 @@ export function Table({ game, room }: { game: GameView; room: RoomView }) {
         {seatBox(right)}
       </div>
       <div className="col-start-2 row-start-3 flex justify-center">{seatBox(bottom)}</div>
-      <div className="col-start-2 row-start-2 grid grid-cols-3 grid-rows-3 place-items-center">
+      <div className="col-start-2 row-start-2 grid min-h-0 grid-cols-3 grid-rows-3 place-items-center">
         <div className="col-start-2 row-start-1">{playsAt(top)}</div>
         <div className="col-start-1 row-start-2">{playsAt(left)}</div>
         <div className="col-start-3 row-start-2">{playsAt(right)}</div>

@@ -14,7 +14,7 @@ export function cardLabel(c: Card): string {
 export const CARD_SIZE = {
   sm: 'w-9 sm:w-10',
   /** 桌面出牌区：手机小、电脑接近手牌大小 */
-  table: 'w-10 sm:w-[3.75rem]',
+  table: 'w-10 sm:w-[3.4rem]',
   md: 'w-14 sm:w-[4.25rem]',
 } as const;
 export type CardSize = keyof typeof CARD_SIZE;
