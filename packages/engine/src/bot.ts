@@ -5,6 +5,7 @@ import { type Card, effectiveSuit, strength } from './cards.js';
 import { type Combo, decompose } from './combos.js';
 import { validateFollow } from './follow.js';
 import type { Action, GameState } from './state.js';
+import { smartAction } from './ai/index.js';
 
 type Rng = () => number;
 
@@ -77,8 +78,25 @@ export function chooseFollow(
   return chosen;
 }
 
+export type BotStrategy = 'random' | 'smart';
+
 /** 为当前应行动的座位生成一个合法动作；无需行动时返回 null */
-export function botAction(state: GameState, seat: number, rng: Rng = Math.random): Action | null {
+export function botAction(
+  state: GameState,
+  seat: number,
+  rng: Rng = Math.random,
+  strategy: BotStrategy = 'smart',
+): Action | null {
+  if (strategy === 'smart') return smartAction(state, seat, rng);
+  return randomAction(state, seat, rng);
+}
+
+/** 随机但合法的机器人（用于测试基线） */
+export function randomAction(
+  state: GameState,
+  seat: number,
+  rng: Rng = Math.random,
+): Action | null {
   const hand = state.hands[seat]!;
   switch (state.phase) {
     case 'dealing':
