@@ -60,6 +60,7 @@ export const useStore = create<State>((set, get) => ({
       room: null,
       game: null,
       chat: [],
+      log: [],
       selected: [],
       showLastTrick: false,
     });
@@ -68,10 +69,7 @@ export const useStore = create<State>((set, get) => ({
     const id = ++noticeId;
     set((s) => ({
       notices: [...s.notices, { id, text }],
-      chat: [
-        ...s.chat.slice(-149),
-        { userId: 'system', name: '系统', text, at: Date.now(), system: true },
-      ],
+      log: [...s.log.slice(-199), { text, at: Date.now() }],
     }));
     setTimeout(() => set((s) => ({ notices: s.notices.filter((n) => n.id !== id) })), 4000);
   },
