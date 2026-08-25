@@ -1,0 +1,26 @@
+# 共享反向代理：一台服务器上所有项目共用。放在 /srv/proxy，`docker compose up -d`
+# 各项目把自己的 <name>.caddy 放到 ./sites/ 后执行 `docker compose exec caddy caddy reload --config /etc/caddy/Caddyfile`
+services:
+  caddy:
+    image: caddy:2-alpine
+    container_name: proxy
+    restart: unless-stopped
+    ports:
+      - "80:80"
+      - "443:443"
+      - "443:443/udp"
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - ./sites:/etc/caddy/sites:ro
+      - caddy_data:/data
+      - caddy_config:/config
+    networks:
+      - web
+
+networks:
+  web:
+    external: true
+
+volumes:
+  caddy_data:
+  caddy_config:

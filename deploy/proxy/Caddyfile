@@ -1,0 +1,7 @@
+{
+    # Let's Encrypt 证书通知邮箱（可改）
+    email admin@example.com
+}
+
+# 每个项目一份站点文件，放在 sites/ 目录
+import sites/*.caddy

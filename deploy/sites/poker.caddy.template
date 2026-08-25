@@ -1,0 +1,13 @@
+${DOMAIN} {
+    encode zstd gzip
+    # API、认证、WebSocket 走后端；其余走 Next.js
+    handle /api/* {
+        reverse_proxy poker-server:4000
+    }
+    handle /socket.io/* {
+        reverse_proxy poker-server:4000
+    }
+    handle {
+        reverse_proxy poker-web:3000
+    }
+}
