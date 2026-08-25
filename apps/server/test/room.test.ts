@@ -42,3 +42,19 @@ describe('Room', () => {
     room.dispose();
   });
 });
+
+describe('autoplay toggle', () => {
+  it('lets a seated player hand over to the bot and take it back', () => {
+    const room = new Room('TEST3', 't', 'alice', sink, fast);
+    room.enter('alice', 'Alice');
+    room.sit('alice', 0);
+    for (const seat of [1, 2, 3]) room.addBot('alice', seat);
+    expect(() => room.setAutoplay('alice', true)).toThrow('对局未开始');
+    room.start('alice');
+    room.setAutoplay('alice', true);
+    expect(room.seats[0]?.bot).toBe(true);
+    room.setAutoplay('alice', false);
+    expect(room.seats[0]?.bot).toBe(false);
+    room.dispose();
+  });
+});

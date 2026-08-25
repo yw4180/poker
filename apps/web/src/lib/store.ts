@@ -7,6 +7,8 @@ export type ChatLine = ChatMessage & { system?: boolean };
 
 interface State {
   connected: boolean;
+  /** 页面正在浏览的房间；不属于它的状态一律丢弃 */
+  currentRoomId: string | null;
   room: RoomView | null;
   game: GameView | null;
   chat: ChatLine[];
@@ -19,6 +21,8 @@ interface State {
   setSelected(ids: string[]): void;
   clearSelect(): void;
   setShowLastTrick(v: boolean): void;
+  /** 进入某个房间页面：切换房间时清空旧状态 */
+  enterRoom(roomId: string): void;
   bind(): () => void;
   notify(text: string): void;
 }
@@ -27,6 +31,7 @@ let noticeId = 0;
 
 export const useStore = create<State>((set, get) => ({
   connected: false,
+  currentRoomId: null,
   room: null,
   game: null,
   chat: [],
@@ -41,6 +46,17 @@ export const useStore = create<State>((set, get) => ({
   setSelected: (ids) => set({ selected: ids }),
   clearSelect: () => set({ selected: [] }),
   setShowLastTrick: (v) => set({ showLastTrick: v }),
+  enterRoom: (roomId) => {
+    if (get().currentRoomId === roomId) return;
+    set({
+      currentRoomId: roomId,
+      room: null,
+      game: null,
+      chat: [],
+      selected: [],
+      showLastTrick: false,
+    });
+  },
   notify: (text) => {
     const id = ++noticeId;
     set((s) => ({
@@ -56,8 +72,12 @@ export const useStore = create<State>((set, get) => ({
     const socket = getSocket();
     const onConnect = () => set({ connected: true });
     const onDisconnect = () => set({ connected: false });
-    const onRoom = (room: RoomView) => set({ room });
+    const onRoom = (room: RoomView) => {
+      if (get().currentRoomId && room.id !== get().currentRoomId) return;
+      set({ room });
+    };
     const onGame = (game: GameView) => {
+      if (get().currentRoomId && game.roomId !== get().currentRoomId) return;
       const prev = get().game;
       const patch: Partial<State> = { game };
       if (prev && prev.hand?.length !== game.hand?.length) patch.selected = [];

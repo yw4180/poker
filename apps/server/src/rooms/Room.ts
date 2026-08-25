@@ -217,6 +217,18 @@ export class Room {
     if (userId !== this.hostId) throw new Error('只有房主可以进行此操作');
   }
 
+  /** 玩家自行开关托管（对局中有效） */
+  setAutoplay(userId: string, on: boolean) {
+    this.touch();
+    const seat = this.seatOf(userId);
+    if (seat < 0) throw new Error('你不在座位上');
+    if (this.status !== 'playing') throw new Error('对局未开始');
+    this.seats[seat]!.bot = on;
+    this.broadcastRoom();
+    if (on) this.scheduleBots();
+    else this.sink.gameState(this, userId, this.game!, seat, this.deadlineAt);
+  }
+
   chat(userId: string, text: string) {
     const seat = this.seatOf(userId);
     const name = seat >= 0 ? this.seats[seat]!.name : (this.spectators.get(userId) ?? '?');

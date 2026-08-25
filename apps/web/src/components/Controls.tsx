@@ -28,8 +28,19 @@ export function Controls({
   const selectedCards: Card[] = selected
     .map((id) => game.hand.find((c) => c.id === id)!)
     .filter(Boolean);
-  void room;
+  const mySeat = me >= 0 ? room.seats[me] : null;
+  const autoplay = !!mySeat?.bot;
   void userId;
+
+  const toggleAutoplay = async () => {
+    const r = await request('room:autoplay', { on: !autoplay });
+    if (!r.ok) notify(r.error ?? '操作失败');
+  };
+  const autoplayButton = (
+    <Button variant={autoplay ? 'danger' : 'ghost'} onClick={toggleAutoplay}>
+      {autoplay ? '取消托管' : '托管'}
+    </Button>
+  );
 
   const send = async (action: Parameters<typeof request<'game:action'>>[1]) => {
     const r = await request('game:action', action);
@@ -95,6 +106,7 @@ export function Controls({
         <Button variant="ghost" disabled={selected.length === 0} onClick={clear}>
           清空
         </Button>
+        {autoplayButton}
       </div>
     );
   }
@@ -127,7 +139,9 @@ export function Controls({
     }
     return (
       <div className="flex flex-wrap items-center justify-center gap-2 text-sm">
-        {myTurn ? (
+        {autoplay ? (
+          <span className="text-orange-300">托管中，机器人代打</span>
+        ) : myTurn ? (
           <span className={illegal ? 'text-red-300' : 'text-amber-300'}>
             轮到你出牌{hint && ` · ${hint}`}
           </span>
@@ -160,6 +174,7 @@ export function Controls({
         >
           {showLast ? '关闭' : '上一墩'}
         </Button>
+        {autoplayButton}
       </div>
     );
   }

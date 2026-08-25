@@ -35,7 +35,11 @@ export function attachSocket(http: HttpServer, deps: SocketDeps): { io: IO; room
       io.to(`room:${room.id}`).emit('room:state', view);
     },
     gameState(room, userId, state, seat, deadlineAt) {
-      io.to(userRoom(userId)).emit('game:state', { ...viewFor(state, seat), deadlineAt });
+      io.to(userRoom(userId)).emit('game:state', {
+        ...viewFor(state, seat),
+        roomId: room.id,
+        deadlineAt,
+      });
     },
     gameEvent(room, event) {
       io.to(`room:${room.id}`).emit('game:event', event);
@@ -123,6 +127,7 @@ export function attachSocket(http: HttpServer, deps: SocketDeps): { io: IO; room
     on('room:removeBot', (p) => current().removeBot(user.id, p.seat));
     on('room:start', () => current().start(user.id));
     on('room:nextRound', () => current().nextRound(user.id));
+    on('room:autoplay', (p) => current().setAutoplay(user.id, p.on));
     on('game:action', (p) => current().playerAction(user.id, p));
     on('chat:send', (p) => current().chat(user.id, p.text));
 

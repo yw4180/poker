@@ -25,6 +25,7 @@ export const ClientEvents = {
   'room:removeBot': z.object({ seat: z.number().int().min(0).max(3) }),
   'room:start': z.object({}),
   'room:nextRound': z.object({}),
+  'room:autoplay': z.object({ on: z.boolean() }),
   'game:action': PlayerActionSchema,
   'chat:send': z.object({ text: z.string().trim().min(1).max(200) }),
 } as const;
@@ -64,6 +65,8 @@ export interface Ack<T = undefined> {
 /** 服务器→客户端事件的类型定义（供 socket.io 泛型使用） */
 /** 下发给客户端的对局视角：引擎视角 + 服务器计时信息 */
 export type GameView = PlayerView & {
+  /** 所属房间，客户端据此丢弃过期状态 */
+  roomId: string;
   /** 当前阶段的截止时间戳（如亮主窗口），无则 null */
   deadlineAt: number | null;
 };
@@ -90,6 +93,7 @@ export interface ClientToServerEvents {
   'room:removeBot': (p: ClientPayload<'room:removeBot'>, ack: (r: Ack) => void) => void;
   'room:start': (p: ClientPayload<'room:start'>, ack: (r: Ack) => void) => void;
   'room:nextRound': (p: ClientPayload<'room:nextRound'>, ack: (r: Ack) => void) => void;
+  'room:autoplay': (p: ClientPayload<'room:autoplay'>, ack: (r: Ack) => void) => void;
   'game:action': (p: ClientPayload<'game:action'>, ack: (r: Ack) => void) => void;
   'chat:send': (p: ClientPayload<'chat:send'>, ack: (r: Ack) => void) => void;
 }

@@ -25,7 +25,9 @@ function RoomPage({ user }: { user: { id: string; name: string } }) {
   const notify = useStore((s) => s.notify);
   const kittyNewIds = useStore((s) => s.kittyNewIds);
   const showLastTrick = useStore((s) => s.showLastTrick);
+  const enterRoom = useStore((s) => s.enterRoom);
 
+  useEffect(() => enterRoom(id.toUpperCase()), [enterRoom, id]);
   useEffect(() => bind(), [bind]);
   useEffect(() => {
     if (!connected) return;
@@ -39,7 +41,7 @@ function RoomPage({ user }: { user: { id: string; name: string } }) {
 
   const leave = async () => {
     await request('room:leave', {});
-    useStore.setState({ room: null, game: null, chat: [] });
+    useStore.setState({ currentRoomId: null, room: null, game: null, chat: [] });
     router.replace('/');
   };
 
