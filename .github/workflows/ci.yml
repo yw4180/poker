@@ -18,3 +18,30 @@ jobs:
       - run: pnpm typecheck
       - run: pnpm test
       - run: pnpm build
+  e2e:
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_USER: poker
+          POSTGRES_PASSWORD: poker
+          POSTGRES_DB: poker
+        ports: ["5432:5432"]
+        options: >-
+          --health-cmd "pg_isready -U poker" --health-interval 5s --health-retries 10
+    env:
+      DATABASE_URL: postgres://poker:poker@localhost:5432/poker
+      NEXT_PUBLIC_API_URL: http://localhost:4000
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm --filter @poker/engine --filter @poker/protocol --filter @poker/db build
+      - run: pnpm --filter @poker/db db:migrate
+      - run: pnpm --filter @poker/web exec playwright install --with-deps chromium
+      - run: pnpm --filter @poker/web test:e2e
