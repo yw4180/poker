@@ -23,6 +23,9 @@ interface State {
   /** 刚拿到的底牌 id（高亮几秒） */
   kittyNewIds: string[];
   showLastTrick: boolean;
+  /** 本局结算弹窗是否被用户关闭（换局自动重置） */
+  roundEndDismissed: boolean;
+  setRoundEndDismissed(v: boolean): void;
   toggleSelect(id: string): void;
   setSelected(ids: string[]): void;
   clearSelect(): void;
@@ -46,6 +49,8 @@ export const useStore = create<State>((set, get) => ({
   selected: [],
   kittyNewIds: [],
   showLastTrick: false,
+  roundEndDismissed: false,
+  setRoundEndDismissed: (v) => set({ roundEndDismissed: v }),
   toggleSelect: (id) =>
     set((s) => ({
       selected: s.selected.includes(id) ? s.selected.filter((x) => x !== id) : [...s.selected, id],
@@ -92,7 +97,10 @@ export const useStore = create<State>((set, get) => ({
         patch.kittyNewIds = game.hand.filter((c) => !before.has(c.id)).map((c) => c.id);
         setTimeout(() => set({ kittyNewIds: [] }), 4000);
       }
-      if (prev && prev.roundNo !== game.roundNo) patch.showLastTrick = false;
+      if (prev && prev.roundNo !== game.roundNo) {
+        patch.showLastTrick = false;
+        patch.roundEndDismissed = false;
+      }
       set(patch);
     };
     const onChat = (msg: ChatMessage) => {

@@ -16,6 +16,7 @@ export function Controls({ game, room }: { game: GameView; room: RoomView; userI
   const notify = useStore((s) => s.notify);
   const showLast = useStore((s) => s.showLastTrick);
   const setShowLast = useStore((s) => s.setShowLastTrick);
+  const setRoundEndDismissed = useStore((s) => s.setRoundEndDismissed);
   const me = game.seat;
   const myTurn = game.actor === me;
   const opts = room.options;
@@ -217,6 +218,23 @@ export function Controls({ game, room }: { game: GameView; room: RoomView; userI
         )}
         {autoplayButton}
         {turnCountdown}
+      </Bar>
+    );
+  }
+  if (game.phase === 'roundEnd' || game.phase === 'finished') {
+    return (
+      <Bar>
+        <span className="text-muted">本局已结束</span>
+        <Button variant="primary" onClick={() => setRoundEndDismissed(false)}>
+          查看结算
+        </Button>
+        <Button
+          variant="ghost"
+          disabled={game.tricks.length === 0}
+          onClick={() => setShowLast(!showLast)}
+        >
+          {showLast ? '关闭' : '上一墩'}
+        </Button>
       </Bar>
     );
   }

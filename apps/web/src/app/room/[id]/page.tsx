@@ -29,6 +29,7 @@ function RoomPage({ user }: { user: { id: string; name: string } }) {
   const notify = useStore((s) => s.notify);
   const kittyNewIds = useStore((s) => s.kittyNewIds);
   const showLastTrick = useStore((s) => s.showLastTrick);
+  const roundEndDismissed = useStore((s) => s.roundEndDismissed);
   const enterRoom = useStore((s) => s.enterRoom);
   const [showCounter, setShowCounter] = useState(true);
 
@@ -145,7 +146,9 @@ function RoomPage({ user }: { user: { id: string; name: string } }) {
             )}
           </div>
           {side}
-          {roundOver && <RoundEndModal game={game} room={room} userId={user.id} />}
+          {roundOver && !roundEndDismissed && (
+            <RoundEndModal game={game} room={room} userId={user.id} onLeave={leave} />
+          )}
         </div>
       ) : (
         <div className="grid gap-4 lg:items-start lg:grid-cols-[minmax(0,1fr)_300px]">

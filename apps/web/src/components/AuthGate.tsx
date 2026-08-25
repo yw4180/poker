@@ -14,7 +14,17 @@ export function AuthGate({
   useEffect(() => {
     if (!isPending && !data) router.replace('/login');
   }, [isPending, data, router]);
-  if (isPending) return <div className="py-24 text-center text-sm text-muted">加载中…</div>;
+  if (isPending)
+    return (
+      <div className="py-24 text-center text-sm text-muted">
+        加载中…
+        <div className="mt-3">
+          <a href="/login" className="text-accent hover:underline">
+            连接不上？返回登录
+          </a>
+        </div>
+      </div>
+    );
   if (!data) return null;
   return <>{children({ id: data.user.id, name: data.user.name || data.user.email })}</>;
 }

@@ -7,7 +7,12 @@ export default function CardsPage() {
   const deck = makeDeck().slice(0, 54);
   return (
     <div className="mx-auto max-w-5xl space-y-6 p-6">
-      <h1 className="text-lg font-semibold">牌面画廊</h1>
+      <div className="flex items-center gap-4">
+        <a href="/" className="text-sm text-muted hover:text-fg">
+          ← 返回大厅
+        </a>
+        <h1 className="text-lg font-semibold">牌面画廊</h1>
+      </div>
       <div className="flex flex-wrap gap-3">
         {deck.map((c) => (
           <div key={c.id} className="w-[4.25rem]">

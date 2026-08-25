@@ -6,8 +6,18 @@ import { Button, Tag } from './ui';
 import { request } from '@/lib/socket';
 import { levelText, teamText, useStore } from '@/lib/store';
 
-export function RoundEndModal({ game, room }: { game: GameView; room: RoomView; userId: string }) {
+export function RoundEndModal({
+  game,
+  room,
+  onLeave,
+}: {
+  game: GameView;
+  room: RoomView;
+  userId: string;
+  onLeave: () => void;
+}) {
   const notify = useStore((s) => s.notify);
+  const dismiss = useStore((s) => s.setRoundEndDismissed);
   const r = game.lastRound;
   if (!r) return null;
   const finished = game.phase === 'finished';
@@ -28,6 +38,14 @@ export function RoundEndModal({ game, room }: { game: GameView; room: RoomView; 
   return (
     <div className="fixed inset-0 z-40 flex items-center justify-center bg-black/70 p-4 backdrop-blur-sm">
       <div className="panel max-h-[92vh] w-full max-w-lg overflow-y-auto p-6 shadow-2xl">
+        <div className="mb-3 flex items-center justify-between">
+          <Button size="sm" variant="ghost" onClick={onLeave}>
+            离开房间
+          </Button>
+          <Button size="sm" variant="ghost" onClick={() => dismiss(true)}>
+            查看牌桌 ✕
+          </Button>
+        </div>
         <div className="mb-4 text-center">
           <div className="text-xs uppercase tracking-widest text-faint">
             {finished ? 'Game over' : `第 ${game.roundNo} 局`}
