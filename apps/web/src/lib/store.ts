@@ -4,6 +4,10 @@ import { create } from 'zustand';
 import { getSocket } from './socket';
 
 export type ChatLine = ChatMessage & { system?: boolean };
+export interface LogLine {
+  text: string;
+  at: number;
+}
 
 interface State {
   connected: boolean;
@@ -12,6 +16,8 @@ interface State {
   room: RoomView | null;
   game: GameView | null;
   chat: ChatLine[];
+  /** 对局记录（亮主、得分、系统消息） */
+  log: LogLine[];
   notices: { id: number; text: string }[];
   selected: string[];
   /** 刚拿到的底牌 id（高亮几秒） */
@@ -35,6 +41,7 @@ export const useStore = create<State>((set, get) => ({
   room: null,
   game: null,
   chat: [],
+  log: [],
   notices: [],
   selected: [],
   kittyNewIds: [],
@@ -90,7 +97,11 @@ export const useStore = create<State>((set, get) => ({
       if (prev && prev.roundNo !== game.roundNo) patch.showLastTrick = false;
       set(patch);
     };
-    const onChat = (msg: ChatMessage) => set((s) => ({ chat: [...s.chat.slice(-149), msg] }));
+    const onChat = (msg: ChatMessage) => {
+      // 服务器的系统消息（悔牌、超时代打等）进入对局记录
+      if (msg.userId === 'system') get().notify(msg.text);
+      else set((s) => ({ chat: [...s.chat.slice(-149), msg] }));
+    };
     const onEvent = (ev: GameEvent) => {
       const g = get().game;
       const name = (seat: number) => g?.players[seat]?.name ?? `座位${seat + 1}`;

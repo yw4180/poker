@@ -1,5 +1,11 @@
 import { customAlphabet } from 'nanoid';
-import { Room, type RoomSink, type RoomTimings, DEFAULT_TIMINGS } from './Room.js';
+import {
+  Room,
+  type RoomOptionsPatch,
+  type RoomSink,
+  type RoomTimings,
+  DEFAULT_TIMINGS,
+} from './Room.js';
 
 const genId = customAlphabet('ABCDEFGHJKLMNPQRSTUVWXYZ23456789', 5);
 
@@ -14,10 +20,10 @@ export class RoomManager {
     private readonly idleTtlMs = 30 * 60 * 1000,
   ) {}
 
-  create(hostId: string, name: string): Room {
+  create(hostId: string, name: string, options: RoomOptionsPatch = {}): Room {
     let id = genId();
     while (this.rooms.has(id)) id = genId();
-    const room = new Room(id, name, hostId, this.sink, this.timings);
+    const room = new Room(id, name, hostId, this.sink, this.timings, options);
     this.rooms.set(id, room);
     return room;
   }

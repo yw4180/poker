@@ -44,7 +44,12 @@ export function trickPoints(plays: readonly Play[]): number {
 }
 
 /** 末墩底牌翻倍倍数：单张/对子 ×2，拖拉机 ×2^n（n 为对子数） */
-export function kittyMultiplier(winningCards: readonly Card[], t: Trump): number {
+export function kittyMultiplier(
+  winningCards: readonly Card[],
+  t: Trump,
+  mode: 'double' | 'exp' = 'exp',
+): number {
+  if (mode === 'double') return 2;
   const combo = classify(winningCards, t);
   if (!combo) return 2;
   const maxPairs = Math.max(...combo.components.map((c) => c.pairs), 0);

@@ -110,7 +110,7 @@ export function attachSocket(http: HttpServer, deps: SocketDeps): { io: IO; room
     };
 
     on('room:create', (p) => {
-      const room = rooms.create(user.id, p.name ?? `${user.name}的房间`);
+      const room = rooms.create(user.id, p.name ?? `${user.name}的房间`, p.options ?? {});
       joinRoom(room.id);
       return { roomId: room.id };
     });
@@ -128,6 +128,9 @@ export function attachSocket(http: HttpServer, deps: SocketDeps): { io: IO; room
     on('room:start', () => current().start(user.id));
     on('room:nextRound', () => current().nextRound(user.id));
     on('room:autoplay', (p) => current().setAutoplay(user.id, p.on));
+    on('room:setOptions', (p) => current().setOptions(user.id, p.options));
+    on('game:undoRequest', () => current().requestUndo(user.id));
+    on('game:undoVote', (p) => current().voteUndo(user.id, p.approve));
     on('game:action', (p) => current().playerAction(user.id, p));
     on('chat:send', (p) => current().chat(user.id, p.text));
 

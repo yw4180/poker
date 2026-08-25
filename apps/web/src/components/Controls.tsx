@@ -1,6 +1,7 @@
 'use client';
 import { type Card, classify, legalDeclareOptions, validateFollow } from '@poker/engine';
 import type { GameView, RoomView } from '@poker/protocol';
+import { Countdown } from './Countdown';
 import { Button } from './ui';
 import { suggest } from '@/lib/engine-view';
 import { request } from '@/lib/socket';
@@ -36,6 +37,15 @@ export function Controls({
     const r = await request('room:autoplay', { on: !autoplay });
     if (!r.ok) notify(r.error ?? '操作失败');
   };
+  const opts = room.options;
+  const requestUndo = async () => {
+    const r = await request('game:undoRequest', {});
+    if (!r.ok) notify(r.error ?? '不能悔牌');
+  };
+  const turnCountdown =
+    myTurn && game.deadlineAt && opts.turnTimeoutSec > 0 ? (
+      <Countdown deadlineAt={game.deadlineAt} totalMs={opts.turnTimeoutSec * 1000} label="出牌" />
+    ) : null;
   const autoplayButton = (
     <Button variant={autoplay ? 'danger' : 'ghost'} onClick={toggleAutoplay}>
       {autoplay ? '取消托管' : '托管'}
@@ -88,15 +98,17 @@ export function Controls({
     return (
       <div className="flex flex-wrap items-center justify-center gap-2 text-sm">
         <span className="text-white/80">请选择 8 张牌扣底（已选 {selected.length}/8）</span>
-        <Button
-          variant="ghost"
-          onClick={() => {
-            const a = suggest(game);
-            if (a?.type === 'BURY') setSelected(a.cardIds);
-          }}
-        >
-          提示
-        </Button>
+        {opts.hint && (
+          <Button
+            variant="ghost"
+            onClick={() => {
+              const a = suggest(game);
+              if (a?.type === 'BURY') setSelected(a.cardIds);
+            }}
+          >
+            提示
+          </Button>
+        )}
         <Button
           disabled={selected.length !== 8}
           onClick={() => send({ type: 'BURY', cardIds: selected })}
@@ -107,6 +119,7 @@ export function Controls({
           清空
         </Button>
         {autoplayButton}
+        {turnCountdown}
       </div>
     );
   }
@@ -154,16 +167,18 @@ export function Controls({
         >
           出牌
         </Button>
-        <Button
-          variant="ghost"
-          disabled={!myTurn}
-          onClick={() => {
-            const a = suggest(game);
-            if (a?.type === 'PLAY') setSelected(a.cardIds);
-          }}
-        >
-          提示
-        </Button>
+        {opts.hint && (
+          <Button
+            variant="ghost"
+            disabled={!myTurn}
+            onClick={() => {
+              const a = suggest(game);
+              if (a?.type === 'PLAY') setSelected(a.cardIds);
+            }}
+          >
+            提示
+          </Button>
+        )}
         <Button variant="ghost" disabled={selected.length === 0} onClick={clear}>
           清空
         </Button>
@@ -174,7 +189,13 @@ export function Controls({
         >
           {showLast ? '关闭' : '上一墩'}
         </Button>
+        {opts.undo && (
+          <Button variant="ghost" disabled={!!room.undoRequest} onClick={requestUndo}>
+            悔牌
+          </Button>
+        )}
         {autoplayButton}
+        {turnCountdown}
       </div>
     );
   }

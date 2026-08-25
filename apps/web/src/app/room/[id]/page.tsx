@@ -1,9 +1,12 @@
 'use client';
 import Link from 'next/link';
 import { useParams, useRouter } from 'next/navigation';
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { AuthGate } from '@/components/AuthGate';
+import { CardCounter } from '@/components/CardCounter';
 import { Chat } from '@/components/Chat';
+import { GameLog } from '@/components/GameLog';
+import { UndoBanner } from '@/components/UndoBanner';
 import { Controls } from '@/components/Controls';
 import { Hand } from '@/components/Hand';
 import { LastTrick } from '@/components/LastTrick';
@@ -26,6 +29,7 @@ function RoomPage({ user }: { user: { id: string; name: string } }) {
   const kittyNewIds = useStore((s) => s.kittyNewIds);
   const showLastTrick = useStore((s) => s.showLastTrick);
   const enterRoom = useStore((s) => s.enterRoom);
+  const [showCounter, setShowCounter] = useState(false);
 
   useEffect(() => enterRoom(id.toUpperCase()), [enterRoom, id]);
   useEffect(() => bind(), [bind]);
@@ -41,7 +45,7 @@ function RoomPage({ user }: { user: { id: string; name: string } }) {
 
   const leave = async () => {
     await request('room:leave', {});
-    useStore.setState({ currentRoomId: null, room: null, game: null, chat: [] });
+    useStore.setState({ currentRoomId: null, room: null, game: null, chat: [], log: [] });
     router.replace('/');
   };
 
@@ -90,6 +94,7 @@ function RoomPage({ user }: { user: { id: string; name: string } }) {
           <div className="space-y-2">
             <InfoBar game={game} />
             <Table game={game} room={room} />
+            <UndoBanner room={room} mySeat={mySeat} />
             {showLastTrick && <LastTrick game={game} />}
             <Controls game={game} room={room} userId={user.id} />
             {mySeat >= 0 && (
@@ -102,7 +107,27 @@ function RoomPage({ user }: { user: { id: string; name: string } }) {
               />
             )}
           </div>
-          <Chat className="h-64 lg:h-auto lg:max-h-[80vh]" />
+          <div className="flex flex-col gap-3 lg:max-h-[85vh]">
+            {room.options.cardCounter && (
+              <div className="rounded-xl border border-white/10 bg-neutral-800/80">
+                <button
+                  type="button"
+                  className="flex w-full items-center justify-between px-3 py-1.5 text-xs font-semibold text-white/70"
+                  onClick={() => setShowCounter(!showCounter)}
+                >
+                  <span>记牌器</span>
+                  <span>{showCounter ? '收起' : '展开'}</span>
+                </button>
+                {showCounter && (
+                  <div className="border-t border-white/10 p-3">
+                    <CardCounter game={game} />
+                  </div>
+                )}
+              </div>
+            )}
+            <GameLog className="h-40 lg:flex-1 lg:min-h-0" />
+            <Chat className="h-56 lg:flex-1 lg:min-h-0" />
+          </div>
           {roundOver && <RoundEndModal game={game} room={room} userId={user.id} />}
         </div>
       ) : (
@@ -115,7 +140,10 @@ function RoomPage({ user }: { user: { id: string; name: string } }) {
             )}
             <Lobby room={room} userId={user.id} />
           </div>
-          <Chat className="h-64" />
+          <div className="flex flex-col gap-3">
+            <GameLog className="h-40" />
+            <Chat className="h-56" />
+          </div>
         </div>
       )}
     </div>

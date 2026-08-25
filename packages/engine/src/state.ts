@@ -16,9 +16,16 @@ export interface GameConfig {
   kittySize: number;
   /** 起始级别 */
   startLevel: Rank;
+  /** 末墩闲家赢时底牌翻倍方式：double=固定×2，exp=拖拉机 2^n */
+  kittyBonus: 'double' | 'exp';
 }
 
-export const DEFAULT_CONFIG: GameConfig = { handSize: 25, kittySize: 8, startLevel: 2 };
+export const DEFAULT_CONFIG: GameConfig = {
+  handSize: 25,
+  kittySize: 8,
+  startLevel: 2,
+  kittyBonus: 'exp',
+};
 
 export interface Declaration {
   seat: number;

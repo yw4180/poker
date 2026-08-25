@@ -293,7 +293,9 @@ function finishRound(
   const dealerTeam = teamOf(dealer);
   const kittyPoints = sumPoints(state.kitty);
   const attackersWonLast = teamOf(lastWinner) !== dealerTeam;
-  const multiplier = attackersWonLast ? kittyMultiplier(lastWinningCards, state.trump!) : 1;
+  const multiplier = attackersWonLast
+    ? kittyMultiplier(lastWinningCards, state.trump!, state.config.kittyBonus)
+    : 1;
   const attackerPoints = state.attackerPoints + (attackersWonLast ? kittyPoints * multiplier : 0);
 
   let winningTeam: 0 | 1;

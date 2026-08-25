@@ -1,7 +1,9 @@
 'use client';
+import { type RoomOptions, DEFAULT_ROOM_OPTIONS } from '@poker/protocol';
 import { useRouter } from 'next/navigation';
 import { useEffect, useState } from 'react';
 import { AuthGate } from '@/components/AuthGate';
+import { RoomOptionsForm } from '@/components/RoomOptionsForm';
 import { Button, Input, Panel } from '@/components/ui';
 import { API_URL } from '@/lib/api';
 import { signOut } from '@/lib/auth-client';
@@ -21,6 +23,8 @@ function Home({ user }: { user: { id: string; name: string } }) {
   const notify = useStore((s) => s.notify);
   const [code, setCode] = useState('');
   const [rooms, setRooms] = useState<RoomSummary[]>([]);
+  const [showOptions, setShowOptions] = useState(false);
+  const [options, setOptions] = useState<RoomOptions>(DEFAULT_ROOM_OPTIONS);
 
   useEffect(() => bind(), [bind]);
   useEffect(() => {
@@ -35,7 +39,7 @@ function Home({ user }: { user: { id: string; name: string } }) {
   }, []);
 
   const create = async () => {
-    const r = await request('room:create', { name: `${user.name}的房间` });
+    const r = await request('room:create', { name: `${user.name}的房间`, options });
     if (r.ok) router.push(`/room/${(r.data as { roomId: string }).roomId}`);
     else notify(r.error ?? '创建失败');
   };
@@ -52,19 +56,29 @@ function Home({ user }: { user: { id: string; name: string } }) {
           </Button>
         </div>
       </header>
-      <Panel className="flex flex-wrap items-center gap-3">
-        <Button onClick={create}>创建房间</Button>
-        <span className="text-white/40">或</span>
-        <Input
-          placeholder="输入房间码"
-          value={code}
-          onChange={(e) => setCode(e.target.value.toUpperCase())}
-          style={{ width: 160 }}
-          maxLength={8}
-        />
-        <Button variant="ghost" disabled={code.length < 4} onClick={() => join(code)}>
-          加入
-        </Button>
+      <Panel className="space-y-3">
+        <div className="flex flex-wrap items-center gap-3">
+          <Button onClick={create}>创建房间</Button>
+          <Button variant="ghost" onClick={() => setShowOptions(!showOptions)}>
+            {showOptions ? '收起选项' : '房间选项'}
+          </Button>
+          <span className="text-white/40">或</span>
+          <Input
+            placeholder="输入房间码"
+            value={code}
+            onChange={(e) => setCode(e.target.value.toUpperCase())}
+            style={{ width: 160 }}
+            maxLength={8}
+          />
+          <Button variant="ghost" disabled={code.length < 4} onClick={() => join(code)}>
+            加入
+          </Button>
+        </div>
+        {showOptions && (
+          <div className="border-t border-white/10 pt-3">
+            <RoomOptionsForm value={options} onChange={setOptions} />
+          </div>
+        )}
       </Panel>
       <Panel>
         <h2 className="mb-2 font-semibold">当前房间</h2>

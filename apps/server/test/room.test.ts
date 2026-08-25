@@ -58,3 +58,75 @@ describe('autoplay toggle', () => {
     room.dispose();
   });
 });
+
+describe('undo', () => {
+  function setup(extra: Record<string, unknown> = {}) {
+    const room = new Room(
+      'TEST4',
+      't',
+      'alice',
+      sink,
+      { ...fast, botDelayMs: 30, trickPauseMs: 30 },
+      { undo: true, ...extra },
+    );
+    room.enter('alice', 'Alice');
+    room.sit('alice', 0);
+    for (const seat of [1, 2, 3]) room.addBot('alice', seat);
+    return room;
+  }
+  const until = async (pred: () => boolean, ms = 5000) => {
+    const end = Date.now() + ms;
+    while (!pred()) {
+      if (Date.now() > end) throw new Error('timeout');
+      await new Promise((r) => setTimeout(r, 10));
+    }
+  };
+  it('restores the snapshot when both opponents (bots) auto-approve', async () => {
+    const room = setup();
+    room.start('alice');
+    // 机器人会一直打到轮到 alice；若 alice 是庄家需先扣底
+    await until(() => room.game?.phase === 'kitty' || room.game?.phase === 'playing');
+    if (room.game!.phase === 'kitty' && room.game!.dealer === 0) {
+      room.playerAction('alice', {
+        type: 'BURY',
+        cardIds: room.game!.hands[0]!.slice(0, 8).map((c) => c.id),
+      });
+    }
+    await until(
+      () =>
+        room.game?.phase === 'playing' &&
+        (room.game.trick!.leader + room.game.trick!.plays.length) % 4 === 0,
+    );
+    const before = room.game!;
+    const trick = before.trick!;
+    // 领出随便一张；跟牌用引擎给的合法牌
+    const { botAction } = await import('@poker/engine');
+    const a = botAction(before, 0, Math.random, 'random')!;
+    expect(a.type).toBe('PLAY');
+    room.playerAction('alice', a as never);
+    expect(room.game!.hands[0]!.length).toBeLessThan(before.hands[0]!.length);
+    // 机器人 30ms 后才会跟牌，这里同步发起悔牌
+    room.requestUndo('alice');
+    expect(room.undoRequest).toBeNull();
+    expect(room.game!.hands[0]!.length).toBe(before.hands[0]!.length);
+    expect(room.game!.trick!.plays.length).toBe(trick.plays.length);
+    room.dispose();
+  });
+  it('rejects undo when disabled', () => {
+    const room = new Room('TEST5', 't', 'alice', sink, fast);
+    room.enter('alice', 'Alice');
+    room.sit('alice', 0);
+    expect(() => room.requestUndo('alice')).toThrow('未开启悔牌');
+    room.dispose();
+  });
+  it('host can change options only in lobby', () => {
+    const room = setup();
+    room.setOptions('alice', { cardCounter: true, turnTimeoutSec: 20 });
+    expect(room.options.cardCounter).toBe(true);
+    expect(room.options.turnTimeoutSec).toBe(20);
+    expect(room.options.undo).toBe(true);
+    room.start('alice');
+    expect(() => room.setOptions('alice', { hint: false })).toThrow('对局进行中');
+    room.dispose();
+  });
+});
