@@ -8,5 +8,6 @@ poker.example.com {
     handle { reverse_proxy poker-web:3000 }
 }
 ```
+
 要求：项目容器加入外部网络 `web`，并设置固定 `container_name`。
 修改后：`docker compose exec caddy caddy reload --config /etc/caddy/Caddyfile`

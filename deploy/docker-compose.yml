@@ -11,7 +11,7 @@ services:
     volumes:
       - pgdata:/var/lib/postgresql/data
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U poker"]
+      test: ['CMD-SHELL', 'pg_isready -U poker']
       interval: 5s
       retries: 10
     networks:
