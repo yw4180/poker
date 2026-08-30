@@ -50,6 +50,8 @@ export function createGame(
     hands: [[], [], [], []],
     kitty: [],
     dealTo: 0,
+    ask: null,
+    postKitty: false,
     trick: null,
     tricks: [],
     attackerPoints: 0,
@@ -74,6 +76,8 @@ export function reduce(state: GameState, action: Action): ReduceResult {
       return declare(state, action.seat, action.cardIds);
     case 'END_DECLARING':
       return endDeclaring(state);
+    case 'PASS_DECLARE':
+      return passDeclare(state, action.seat);
     case 'BURY':
       return bury(state, action.seat, action.cardIds);
     case 'PLAY':
@@ -103,6 +107,8 @@ function startRound(state: GameState, deck: Card[]): ReduceResult {
       deck: deck.slice(),
       hands: [[], [], [], []],
       kitty: [],
+      ask: null,
+      postKitty: false,
       dealTo: state.dealer ?? 0,
       trick: null,
       tricks: [],
@@ -124,16 +130,34 @@ function dealCard(state: GameState): ReduceResult {
   const seat = state.dealTo;
   let next = dealOne(state);
   if (next.deck.length === state.config.kittySize) {
-    next = { ...next, phase: 'declaring' };
+    next = enterDeclaring(next);
   }
   return { state: next, events: [{ type: 'dealt', seat }] };
+}
+
+/** 发牌结束：从（亮主者的）下家开始逐个询问 */
+function enterDeclaring(state: GameState): GameState {
+  const from = state.declaration ? state.declaration.seat : (state.dealer ?? 0);
+  const first = nextEligible(state.declaration?.seat ?? null, [], from);
+  return { ...state, phase: 'declaring', ask: { seat: first, passes: [] } };
+}
+
+/** 顺时针找下一个可表态的座位（跳过当前亮主者与已过的人） */
+function nextEligible(declarer: number | null, passes: number[], from: number): number {
+  for (let i = 1; i <= 4; i++) {
+    const s = (from + i) % 4;
+    if (s === declarer) continue;
+    if (passes.includes(s)) continue;
+    return s;
+  }
+  return (from + 1) % 4;
 }
 
 function dealAll(state: GameState): ReduceResult {
   expectPhase(state, 'dealing');
   let s = state;
   while (s.deck.length > state.config.kittySize) s = dealOne(s);
-  return { state: { ...s, phase: 'declaring' }, events: [] };
+  return { state: enterDeclaring(s), events: [] };
 }
 
 /** 亮主强度：1 单张级牌, 2 一对级牌, 3 一对小王(无主), 4 一对大王(无主) */
@@ -166,6 +190,9 @@ function pickCards(hand: readonly Card[], ids: readonly string[]): Card[] {
 
 function declare(state: GameState, seat: number, cardIds: string[]): ReduceResult {
   expectPhase(state, 'dealing', 'declaring');
+  if (state.phase === 'declaring' && state.ask && state.ask.seat !== seat) {
+    throw new IllegalAction('还没轮到你表态', 'NOT_YOUR_TURN');
+  }
   const cards = pickCards(state.hands[seat]!, cardIds);
   const decl = declarationOf(cards, state.level);
   if (!decl) throw new IllegalAction('这些牌不能用来亮主', 'BAD_DECLARE');
@@ -178,11 +205,57 @@ function declare(state: GameState, seat: number, cardIds: string[]): ReduceResul
     }
   }
   const declaration: Declaration = { seat, ...decl };
-  return { state: { ...state, declaration }, events: [{ type: 'declared', declaration }] };
+  const events: GameEvent[] = [{ type: 'declared', declaration }];
+  if (state.phase === 'dealing') {
+    return { state: { ...state, declaration }, events };
+  }
+  // declaring 阶段：亮/反后从下家重新逐个询问
+  let next: GameState = {
+    ...state,
+    declaration,
+    ask: { seat: nextEligible(seat, [], seat), passes: [] },
+  };
+  if (state.postKitty && state.trump) {
+    // 扣底后被反主：主立即更换，底牌退回庄家重扣
+    const trump = declaration.trump;
+    const hands = next.hands.map((h) => h.slice()) as GameState['hands'];
+    hands[next.dealer!] = sortHand([...hands[next.dealer!]!, ...next.kitty], trump);
+    next = { ...next, trump, hands, kitty: [], phase: 'kitty', ask: null };
+    events.push({ type: 'trumpSet', trump, dealer: next.dealer!, fromKitty: false });
+  }
+  return { state: next, events };
+}
+
+/** 被询问者选择“过” */
+function passDeclare(state: GameState, seat: number): ReduceResult {
+  expectPhase(state, 'declaring');
+  if (!state.ask || state.ask.seat !== seat)
+    throw new IllegalAction('还没轮到你表态', 'NOT_YOUR_TURN');
+  const passes = [...state.ask.passes, seat];
+  const needed = state.declaration ? 3 : 4;
+  if (passes.length >= needed) return finishDeclareRound({ ...state, ask: null });
+  const nextSeatToAsk = nextEligible(state.declaration?.seat ?? null, passes, seat);
+  return { state: { ...state, ask: { seat: nextSeatToAsk, passes } }, events: [] };
 }
 
 function endDeclaring(state: GameState): ReduceResult {
   expectPhase(state, 'declaring');
+  return finishDeclareRound({ ...state, ask: null });
+}
+
+function finishDeclareRound(state: GameState): ReduceResult {
+  if (state.postKitty) {
+    // 扣底后的反主轮结束：开始出牌
+    return {
+      state: {
+        ...state,
+        phase: 'playing',
+        ask: null,
+        trick: { leader: state.dealer!, lead: null, plays: [] },
+      },
+      events: [],
+    };
+  }
   let trump: Trump;
   let dealer: number;
   let fromKitty = false;
@@ -200,7 +273,7 @@ function endDeclaring(state: GameState): ReduceResult {
   const hands = state.hands.map((h) => h.slice()) as GameState['hands'];
   hands[dealer] = sortHand([...hands[dealer]!, ...kitty], trump);
   return {
-    state: { ...state, phase: 'kitty', trump, dealer, deck: [], hands, kitty: [] },
+    state: { ...state, phase: 'kitty', trump, dealer, deck: [], hands, kitty: [], ask: null },
     events: [{ type: 'trumpSet', trump, dealer, fromKitty }],
   };
 }
@@ -215,13 +288,18 @@ function bury(state: GameState, seat: number, cardIds: string[]): ReduceResult {
   const ids = new Set(cardIds);
   const hands = state.hands.map((h) => h.slice()) as GameState['hands'];
   hands[seat] = hands[seat]!.filter((c) => !ids.has(c.id));
+  // 扣完底后给其他人一轮反主机会
+  const from = state.declaration ? state.declaration.seat : seat;
+  const first = nextEligible(state.declaration?.seat ?? null, [], from);
   return {
     state: {
       ...state,
-      phase: 'playing',
+      phase: 'declaring',
+      postKitty: true,
+      ask: { seat: first, passes: [] },
       hands,
       kitty: cards,
-      trick: { leader: seat, lead: null, plays: [] },
+      trick: null,
     },
     events: [{ type: 'kittyBuried', seat }],
   };
@@ -344,6 +422,8 @@ function finishRound(
 /** 当前轮到谁操作（用于 UI/服务器计时）；null 表示无需等待某个人 */
 export function currentActor(state: GameState): number | null {
   switch (state.phase) {
+    case 'declaring':
+      return state.ask?.seat ?? null;
     case 'kitty':
       return state.dealer;
     case 'playing':

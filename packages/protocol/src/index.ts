@@ -48,6 +48,7 @@ export const PlayerActionSchema = z.discriminatedUnion('type', [
   z.object({ type: z.literal('DECLARE'), cardIds: z.array(z.string()).min(1).max(2) }),
   z.object({ type: z.literal('BURY'), cardIds: z.array(z.string()).length(8) }),
   z.object({ type: z.literal('PLAY'), cardIds: z.array(z.string()).min(1).max(25) }),
+  z.object({ type: z.literal('PASS_DECLARE') }),
 ]);
 export type PlayerAction = z.infer<typeof PlayerActionSchema>;
 
@@ -67,7 +68,6 @@ export const ClientEvents = {
   'room:nextRound': z.object({}),
   'room:autoplay': z.object({ on: z.boolean() }),
   'game:undoRequest': z.object({}),
-  'game:passDeclare': z.object({}),
   'game:undoVote': z.object({ approve: z.boolean() }),
   'game:action': PlayerActionSchema,
   'chat:send': z.object({ text: z.string().trim().min(1).max(200) }),
@@ -105,8 +105,6 @@ export interface RoomView {
   undoRequest: UndoRequestView | null;
   /** 已点击“下一局”的座位 */
   readyNext: number[];
-  /** 亮主阶段已选择“过”的座位 */
-  declarePasses: number[];
   seats: [SeatView | null, SeatView | null, SeatView | null, SeatView | null];
   spectators: { userId: string; name: string; avatar: string | null }[];
 }
@@ -158,7 +156,6 @@ export interface ClientToServerEvents {
   'room:autoplay': (p: ClientPayload<'room:autoplay'>, ack: (r: Ack) => void) => void;
   'room:setOptions': (p: ClientPayload<'room:setOptions'>, ack: (r: Ack) => void) => void;
   'game:undoRequest': (p: ClientPayload<'game:undoRequest'>, ack: (r: Ack) => void) => void;
-  'game:passDeclare': (p: ClientPayload<'game:passDeclare'>, ack: (r: Ack) => void) => void;
   'game:undoVote': (p: ClientPayload<'game:undoVote'>, ack: (r: Ack) => void) => void;
   'game:action': (p: ClientPayload<'game:action'>, ack: (r: Ack) => void) => void;
   'chat:send': (p: ClientPayload<'chat:send'>, ack: (r: Ack) => void) => void;

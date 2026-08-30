@@ -131,3 +131,26 @@ describe('undo', () => {
     room.dispose();
   });
 });
+
+describe('persistence', () => {
+  it('snapshot + restore keeps an in-progress game', async () => {
+    const room = new Room('TEST9', 't', 'alice', 'Alice', sink, fast);
+    room.enter('alice', 'Alice');
+    room.sit('alice', 0);
+    for (const seat of [1, 2, 3]) room.addBot('alice', seat);
+    room.start('alice');
+    await new Promise((r) => setTimeout(r, 300));
+    const snap = JSON.parse(JSON.stringify(room.snapshot()));
+    room.dispose();
+
+    const restored = Room.restore(snap, sink, fast);
+    expect(restored.id).toBe('TEST9');
+    expect(restored.status).toBe('playing');
+    expect(restored.game).not.toBeNull();
+    expect(restored.seats[0]?.userId).toBe('alice');
+    expect(restored.seats[0]?.connected).toBe(false); // 重启后等待重连
+    expect(restored.seats[1]?.connected).toBe(true); // 机器人视为在线
+    restored.resume();
+    restored.dispose();
+  });
+});

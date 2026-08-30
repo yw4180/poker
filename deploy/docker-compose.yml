@@ -34,8 +34,10 @@ services:
       GOOGLE_CLIENT_ID: ${GOOGLE_CLIENT_ID:-}
       GOOGLE_CLIENT_SECRET: ${GOOGLE_CLIENT_SECRET:-}
       UPLOAD_DIR: /app/uploads
+      STATE_DIR: /app/state
     volumes:
       - uploads:/app/uploads
+      - state:/app/state
     networks:
       - internal
       - web
@@ -57,3 +59,4 @@ networks:
 volumes:
   pgdata:
   uploads:
+  state:

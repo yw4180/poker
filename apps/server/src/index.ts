@@ -2,7 +2,8 @@ import cors from '@fastify/cors';
 import multipart from '@fastify/multipart';
 import fastifyStatic from '@fastify/static';
 import { eq } from 'drizzle-orm';
-import { mkdir } from 'node:fs/promises';
+import { mkdir, readFile, writeFile } from 'node:fs/promises';
+import { writeFileSync, readFileSync, existsSync, mkdirSync } from 'node:fs';
 import path from 'node:path';
 import sharp from 'sharp';
 import { createAvatar } from '@dicebear/core';
@@ -124,6 +125,36 @@ async function main() {
       );
     },
   });
+
+  // ---------- 房间状态持久化：重启不丢房间 ----------
+  const stateDir = path.resolve(config.stateDir);
+  mkdirSync(stateDir, { recursive: true });
+  const stateFile = path.join(stateDir, 'rooms.json');
+  if (existsSync(stateFile)) {
+    try {
+      const data = JSON.parse(readFileSync(stateFile, 'utf8'));
+      rooms.restore(data);
+      app.log.info(`已恢复 ${data.length} 个房间`);
+    } catch (e) {
+      app.log.error({ err: e }, '恢复房间状态失败');
+    }
+  }
+  const saveRooms = () => {
+    try {
+      writeFileSync(stateFile, JSON.stringify(rooms.snapshot()));
+    } catch (e) {
+      app.log.error({ err: e }, '保存房间状态失败');
+    }
+  };
+  setInterval(saveRooms, 15_000).unref();
+  for (const sig of ['SIGTERM', 'SIGINT'] as const) {
+    process.on(sig, () => {
+      saveRooms();
+      process.exit(0);
+    });
+  }
+  void readFile;
+  void writeFile;
 
   app.get('/api/rooms', async () => ({
     rooms: rooms.list().map((r) => ({

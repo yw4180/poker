@@ -69,6 +69,14 @@ test('一人 + 三机器人打完一局', async ({ page }) => {
     if (v.phase === 'kitty' && v.actor === v.seat) await shot('kitty');
     if (v.phase === 'playing' && v.tricks.length >= 3 && v.actor === v.seat) await shot('playing');
     if (v.phase === 'roundEnd' || v.phase === 'finished') break;
+    if (v.phase === 'declaring' && v.actor === v.seat) {
+      await page
+        .getByRole('button', { name: '过', exact: true })
+        .click({ timeout: 3000 })
+        .catch(() => {});
+      await page.waitForTimeout(150);
+      continue;
+    }
     if (v.actor === v.seat && (v.phase === 'kitty' || v.phase === 'playing')) {
       const a = await decide(page);
       if (a && (a.type === 'BURY' || a.type === 'PLAY')) {

@@ -27,9 +27,9 @@ function playRound(state: GameState, rng: () => number): GameState {
       if (a) s = reduce(s, a).state;
     }
   }
-  s = reduce(s, { type: 'END_DECLARING' }).state;
+  if (s.phase === 'declaring') s = reduce(s, { type: 'END_DECLARING' }).state;
   let guard = 0;
-  while (s.phase === 'kitty' || s.phase === 'playing') {
+  while (s.phase === 'kitty' || s.phase === 'playing' || s.phase === 'declaring') {
     if (++guard > 2000) throw new Error('stuck');
     for (let seat = 0; seat < 4; seat++) {
       const a = botAction(s, seat, rng, strategyOf(seat));

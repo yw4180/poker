@@ -85,6 +85,27 @@ export class RoomManager {
     for (const [u, r] of this.membership) if (r === id) this.membership.delete(u);
   }
 
+  /** 全部房间的可存盘快照 */
+  snapshot() {
+    return this.list().map((r) => r.snapshot());
+  }
+
+  /** 从快照恢复（服务器重启时调用） */
+  restore(data: ReturnType<Room['snapshot']>[]) {
+    for (const d of data) {
+      try {
+        const room = Room.restore(d, this.sink, this.timings);
+        this.rooms.set(room.id, room);
+        for (const s of room.seats) {
+          if (s && !s.userId.startsWith('bot:')) this.membership.set(s.userId, room.id);
+        }
+        room.resume();
+      } catch (e) {
+        console.error('恢复房间失败', d.id, e);
+      }
+    }
+  }
+
   /** 清理长时间无人活动的房间 */
   sweep(now = Date.now()) {
     for (const room of this.rooms.values()) {

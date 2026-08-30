@@ -13,8 +13,11 @@ export function smartAction(
 ): Action | null {
   switch (state.phase) {
     case 'dealing':
-    case 'declaring':
       return chooseDeclare(state, seat);
+    case 'declaring': {
+      if (state.ask?.seat !== seat) return null;
+      return chooseDeclare(state, seat) ?? { type: 'PASS_DECLARE', seat };
+    }
     case 'kitty':
       return seat === state.dealer ? chooseBury(state, seat) : null;
     case 'playing': {

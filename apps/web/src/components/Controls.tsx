@@ -68,10 +68,6 @@ export function Controls({ game, room }: { game: GameView; room: RoomView; userI
     const r = await request('room:autoplay', { on: !autoplay });
     if (!r.ok) notify(r.error ?? '操作失败');
   };
-  const passDeclare = async () => {
-    const r = await request('game:passDeclare', {});
-    if (!r.ok) notify(r.error ?? '操作失败');
-  };
   const requestUndo = async () => {
     const r = await request('game:undoRequest', {});
     if (!r.ok) notify(r.error ?? '不能悔牌');
@@ -99,29 +95,47 @@ export function Controls({ game, room }: { game: GameView; room: RoomView; userI
       </Bar>
     );
 
-  // ---- 亮主 ----
+  // ---- 亮主 / 反主 ----
   if (game.phase === 'dealing' || game.phase === 'declaring') {
     const options = legalDeclareOptions(game.hand, game.level, game.declaration, me);
+    const myTurnToAsk = game.phase === 'declaring' && game.ask?.seat === me;
+    const canJumpIn = game.phase === 'dealing';
     return (
       <Bar>
-        {options.length === 0 ? (
-          <span className="text-muted">{game.declaration ? '无法反主' : '暂无可亮的主'}</span>
-        ) : (
+        {game.phase === 'declaring' && game.postKitty && (
+          <span className="text-amber-300">扣底后反主机会</span>
+        )}
+        {(canJumpIn || myTurnToAsk) &&
           options.map((o) => (
             <Button
               key={o.cardIds.join(',')}
               variant="primary"
               onClick={() => send({ type: 'DECLARE', cardIds: o.cardIds })}
             >
-              亮{' '}
+              {game.declaration ? '反' : '亮'}{' '}
               {o.suit === 'NT'
                 ? o.strength === 4
                   ? '大王对 · 无主'
                   : '小王对 · 无主'
                 : `${SUIT_SYMBOL[o.suit]}${o.strength === 2 ? ' 一对' : ''}`}
             </Button>
-          ))
+          ))}
+        {myTurnToAsk && (
+          <Button
+            variant={options.length ? 'ghost' : 'primary'}
+            onClick={() => send({ type: 'PASS_DECLARE' })}
+          >
+            过
+          </Button>
         )}
+        {game.phase === 'declaring' && !myTurnToAsk && (
+          <span className="text-muted">
+            等待 {game.players[game.ask?.seat ?? 0]?.name} 决定是否
+            {game.declaration ? '反主' : '亮主'}
+            {game.ask ? `（已过 ${game.ask.passes.length}/${game.declaration ? 3 : 4}）` : ''}
+          </span>
+        )}
+        {canJumpIn && options.length === 0 && <span className="text-muted">暂无可亮的主</span>}
         {game.declaration && (
           <span className="text-muted">
             当前：{game.players[game.declaration.seat]?.name} 亮{' '}
@@ -133,19 +147,12 @@ export function Controls({ game, room }: { game: GameView; room: RoomView; userI
             发牌中 · 剩 <span className="font-mono">{Math.max(0, game.deckCount - 8)}</span> 张
           </span>
         )}
-        {game.phase === 'declaring' && opts.declareWindowSec > 0 && game.deadlineAt && (
+        {myTurnToAsk && opts.declareWindowSec > 0 && game.deadlineAt && (
           <Countdown
             deadlineAt={game.deadlineAt}
             totalMs={opts.declareWindowSec * 1000}
-            label="亮主"
+            label="表态"
           />
-        )}
-        {game.phase === 'declaring' && (
-          <Button variant="ghost" disabled={room.declarePasses.includes(me)} onClick={passDeclare}>
-            {room.declarePasses.includes(me)
-              ? `已过 ${room.declarePasses.length}/4`
-              : `过（${room.declarePasses.length}/4）`}
-          </Button>
         )}
         <SuitCounts game={game} />
       </Bar>

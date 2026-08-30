@@ -5,7 +5,7 @@ import { type Card, effectiveSuit, strength } from './cards.js';
 import { type Combo, decompose } from './combos.js';
 import { validateFollow } from './follow.js';
 import type { Action, GameState } from './state.js';
-import { smartAction } from './ai/index.js';
+import { legalDeclareOptions, smartAction } from './ai/index.js';
 
 type Rng = () => number;
 
@@ -99,14 +99,21 @@ export function randomAction(
 ): Action | null {
   const hand = state.hands[seat]!;
   switch (state.phase) {
-    case 'dealing':
-    case 'declaring': {
+    case 'dealing': {
       if (state.declaration) return null;
       const levelCards = hand.filter((c) => c.rank === state.level && c.suit !== 'J');
       if (levelCards.length && rng() < 0.5) {
         return { type: 'DECLARE', seat, cardIds: [levelCards[0]!.id] };
       }
       return null;
+    }
+    case 'declaring': {
+      if (state.ask?.seat !== seat) return null;
+      const opts = legalDeclareOptions(hand, state.level, state.declaration, seat);
+      if (opts.length && rng() < 0.35) {
+        return { type: 'DECLARE', seat, cardIds: opts[0]!.cardIds };
+      }
+      return { type: 'PASS_DECLARE', seat };
     }
     case 'kitty': {
       if (seat !== state.dealer) return null;

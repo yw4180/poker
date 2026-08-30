@@ -34,9 +34,9 @@ function playRound(state: GameState, rng: () => number): { state: GameState; eve
       if (a) s = step(s, a);
     }
   }
-  s = step(s, { type: 'END_DECLARING' });
+  if (s.phase === 'declaring') s = step(s, { type: 'END_DECLARING' });
   let guard = 0;
-  while (s.phase === 'kitty' || s.phase === 'playing') {
+  while (s.phase === 'kitty' || s.phase === 'playing' || s.phase === 'declaring') {
     if (++guard > 1000) throw new Error('stuck');
     let acted = false;
     for (let seat = 0; seat < 4; seat++) {

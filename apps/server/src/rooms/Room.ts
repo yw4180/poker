@@ -89,8 +89,6 @@ export class Room {
   /** 每次 PLAY 前的快照，用于悔牌 */
   private history: { seat: number; state: GameState }[] = [];
   undoRequest: UndoRequestView | null = null;
-  /** 亮主阶段已“过”的座位 */
-  declarePasses = new Set<number>();
   /** 当前阶段截止时间（亮主窗口） */
   deadlineAt: number | null = null;
   lastActivity = Date.now();
@@ -128,7 +126,6 @@ export class Room {
       options: this.options,
       undoRequest: this.undoRequest,
       readyNext: [...this.readyNext],
-      declarePasses: [...this.declarePasses],
       seats: this.seats.map((s) => (s ? ({ ...s } as SeatView) : null)) as RoomView['seats'],
       spectators: [...this.spectators].map(([userId, v]) => ({ userId, ...v })),
     };
@@ -335,38 +332,24 @@ export class Room {
 
   private beginRound() {
     this.readyNext.clear();
-    this.declarePasses.clear();
     this.history = [];
     this.cancelUndo();
     this.broadcastRoom();
     this.apply({ type: 'START_ROUND', deck: shuffle(makeDeck(), secureRandom) });
+    this.startDealLoop();
+  }
+
+  private startDealLoop() {
     this.clearTimer();
     this.timer = setInterval(() => {
       if (!this.game || this.game.phase !== 'dealing') {
         this.clearTimer();
-        if (this.declareWindowMs > 0) {
-          this.deadlineAt = Date.now() + this.declareWindowMs;
-          this.timer = setTimeout(() => this.endDeclaring(), this.declareWindowMs);
-        } else {
-          this.deadlineAt = null; // 无限制：等全员“过”
-        }
-        this.broadcastGame();
-        this.scheduleBotPasses();
-        this.broadcastRoom();
+        this.scheduleBots();
         return;
       }
       this.apply({ type: 'DEAL_CARD' });
       this.runBots();
     }, this.timings.dealCardMs);
-  }
-
-  private endDeclaring() {
-    if (!this.game || this.game.phase !== 'declaring') return;
-    this.clearTimer();
-    this.deadlineAt = null;
-    this.declarePasses.clear();
-    this.apply({ type: 'END_DECLARING' });
-    this.scheduleBots();
   }
 
   /** 玩家操作入口 */
@@ -376,15 +359,7 @@ export class Room {
     if (seat < 0) throw new Error('你不在座位上');
     if (!this.game) throw new Error('对局未开始');
     if (action.type === 'PLAY') this.pushHistory(seat);
-    if (action.type === 'DECLARE') {
-      // 新的亮主让所有人重新获得反主/过的机会
-      this.declarePasses.clear();
-    }
     this.apply({ ...action, seat });
-    if (action.type === 'DECLARE' && this.game?.phase === 'declaring') {
-      this.scheduleBotPasses();
-      this.broadcastRoom();
-    }
     this.scheduleBots();
   }
 
@@ -415,7 +390,7 @@ export class Room {
 
   /** 若轮到机器人则延迟执行其动作 */
   private scheduleBots() {
-    if (!this.game || (this.game.phase !== 'kitty' && this.game.phase !== 'playing')) return;
+    if (!this.game || !['kitty', 'playing', 'declaring'].includes(this.game.phase)) return;
     const delay =
       this.game.phase === 'playing' && this.game.trick?.plays.length === 0
         ? this.timings.trickPauseMs
@@ -446,6 +421,54 @@ export class Room {
     }
   }
 
+  // ---------- 持久化 ----------
+  /** 序列化为可存盘的快照（不含计时器/悔牌请求/观战者） */
+  snapshot() {
+    return {
+      id: this.id,
+      name: this.name,
+      hostId: this.hostId,
+      hostName: this.hostName,
+      options: this.options,
+      status: this.status,
+      seats: this.seats,
+      game: this.game,
+      readyNext: [...this.readyNext],
+      lastActivity: this.lastActivity,
+    };
+  }
+
+  static restore(data: ReturnType<Room['snapshot']>, sink: RoomSink, timings: RoomTimings): Room {
+    const room = new Room(
+      data.id,
+      data.name,
+      data.hostId,
+      data.hostName,
+      sink,
+      timings,
+      data.options,
+    );
+    room.status = data.status;
+    room.seats = data.seats;
+    // 重启后所有人都处于未连接状态，等待重连
+    for (const s of room.seats) if (s) s.connected = s.bot && s.userId.startsWith('bot:');
+    room.game = data.game;
+    room.readyNext = new Set(data.readyNext);
+    room.lastActivity = data.lastActivity;
+    return room;
+  }
+
+  /** 重启恢复后重新武装计时器与机器人 */
+  resume() {
+    if (!this.game) return;
+    if (this.game.phase === 'dealing') {
+      this.startDealLoop();
+    } else {
+      this.armTurnTimer();
+      this.scheduleBots();
+    }
+  }
+
   dispose() {
     this.clearTimer();
     if (this.turnTimer) clearTimeout(this.turnTimer);
@@ -460,14 +483,15 @@ export class Room {
     }
     const g = this.game;
     if (!g) return;
-    if (g.phase === 'declaring') return; // 亮主窗口的 deadline 由 beginRound 设置
     const actor = currentActor(g);
     const seat = actor !== null ? this.seats[actor] : null;
-    if (actor === null || !seat || seat.bot || this.options.turnTimeoutSec === 0) {
+    const declaring = g.phase === 'declaring';
+    const windowMs = declaring ? this.declareWindowMs : this.options.turnTimeoutSec * 1000;
+    if (actor === null || !seat || seat.bot || windowMs === 0) {
       this.deadlineAt = null;
       return;
     }
-    const ms = this.options.turnTimeoutSec * 1000;
+    const ms = windowMs;
     this.deadlineAt = Date.now() + ms;
     const expectedRound = g.roundNo;
     const expectedTricks = g.tricks.length;
@@ -476,6 +500,12 @@ export class Room {
       const now = this.game;
       if (!now || now.roundNo !== expectedRound || now.tricks.length !== expectedTricks) return;
       if ((now.trick?.plays.length ?? -1) !== expectedPlays || currentActor(now) !== actor) return;
+      if (now.phase === 'declaring') {
+        this.systemMessage(`${this.seats[actor]!.name} 超时，自动过`);
+        this.apply({ type: 'PASS_DECLARE', seat: actor });
+        this.scheduleBots();
+        return;
+      }
       const a = botAction(now, actor, secureRandom);
       if (a) {
         this.systemMessage(`${this.seats[actor]!.name} 超时，由机器人代打`);
@@ -485,47 +515,12 @@ export class Room {
     }, ms);
   }
 
-  /** 亮主阶段选择“过”；全员过则立即结束亮主 */
+  /** 亮主阶段选择“过”（引擎校验是否轮到该座位） */
   passDeclare(userId: string) {
     const seat = this.seatOf(userId);
     if (seat < 0) throw new Error('你不在座位上');
-    if (!this.game || this.game.phase !== 'declaring') throw new Error('现在不是亮主阶段');
-    this.declarePasses.add(seat);
-    this.broadcastRoom();
-    if (this.declarePasses.size === 4) this.endDeclaring();
-  }
-
-  /** 机器人稍后自动“过”（若它不想反主） */
-  private scheduleBotPasses() {
-    if (!this.game || this.game.phase !== 'declaring') return;
-    for (let seat = 0; seat < 4; seat++) {
-      const s = this.seats[seat];
-      if (!s?.bot || this.declarePasses.has(seat)) continue;
-      setTimeout(
-        () => {
-          const g = this.game;
-          if (!g || g.phase !== 'declaring' || this.declarePasses.has(seat)) return;
-          const a = botAction(g, seat, secureRandom);
-          if (a && a.type === 'DECLARE') {
-            try {
-              this.declarePasses.clear();
-              this.apply(a);
-              this.scheduleBotPasses();
-            } catch {
-              /* 竞态时忽略 */
-            }
-          } else {
-            this.declarePasses.add(seat);
-            if (this.declarePasses.size === 4) {
-              this.endDeclaring();
-              return;
-            }
-          }
-          this.broadcastRoom();
-        },
-        800 + Math.random() * 1200,
-      );
-    }
+    this.apply({ type: 'PASS_DECLARE', seat });
+    this.scheduleBots();
   }
 
   // ---------- 悔牌 ----------

@@ -75,6 +75,10 @@ export interface GameState {
   kitty: Card[];
   /** 发牌轮到谁 */
   dealTo: number;
+  /** 亮主/反主的轮询状态：当前被询问的座位与本轮已过的座位 */
+  ask: { seat: number; passes: number[] } | null;
+  /** 当前 declaring 是否为扣底后的反主轮 */
+  postKitty: boolean;
   trick: Trick | null;
   tricks: CompletedTrick[];
   attackerPoints: number;
@@ -88,6 +92,7 @@ export type Action =
   | { type: 'DEAL_ALL' }
   | { type: 'DECLARE'; seat: number; cardIds: string[] }
   | { type: 'END_DECLARING' }
+  | { type: 'PASS_DECLARE'; seat: number }
   | { type: 'BURY'; seat: number; cardIds: string[] }
   | { type: 'PLAY'; seat: number; cardIds: string[] };
 

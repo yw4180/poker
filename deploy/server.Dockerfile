@@ -18,4 +18,4 @@ COPY --from=build /out /app
 COPY --from=build /app/packages/db/drizzle /app/drizzle
 ENV MIGRATIONS_DIR=/app/drizzle
 EXPOSE 4000
-CMD ["sh", "-c", "node node_modules/@poker/db/dist/migrate.js && node dist/index.js"]
+CMD ["sh", "-c", "node node_modules/@poker/db/dist/migrate.js && exec node dist/index.js"]
