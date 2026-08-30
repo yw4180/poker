@@ -137,22 +137,36 @@ function dealCard(state: GameState): ReduceResult {
   return { state: next, events: [{ type: 'dealt', seat }] };
 }
 
-/** 发牌结束：从（亮主者的）下家开始逐个询问 */
+/**
+ * 发牌结束：
+ * - 已有人亮主 → 从其下家开始逐个询问是否反主；
+ * - 无人亮主 → 开放窗口（ask.seat = -1），谁先亮就是谁，全员过/超时则翻底定主。
+ */
 function enterDeclaring(state: GameState): GameState {
-  const from = state.declaration ? state.declaration.seat : (state.dealer ?? 0);
-  const first = nextEligible(state.declaration?.seat ?? null, [], from);
-  return { ...state, phase: 'declaring', ask: { seat: first, passes: [] } };
+  if (state.declaration) {
+    const first = nextEligible([state.declaration.seat], [], state.declaration.seat);
+    return { ...state, phase: 'declaring', ask: { seat: first, passes: [] } };
+  }
+  return { ...state, phase: 'declaring', ask: { seat: -1, passes: [] } };
 }
 
-/** 顺时针找下一个可表态的座位（跳过当前亮主者与已过的人） */
-function nextEligible(declarer: number | null, passes: number[], from: number): number {
+/** 顺时针找下一个可表态的座位（跳过排除名单与已过的人） */
+function nextEligible(exclude: number[], passes: number[], from: number): number {
   for (let i = 1; i <= 4; i++) {
     const s = (from + i) % 4;
-    if (s === declarer) continue;
+    if (exclude.includes(s)) continue;
     if (passes.includes(s)) continue;
     return s;
   }
   return (from + 1) % 4;
+}
+
+/** 当前反主轮不需要表态的座位：亮主者 +（扣底后一轮的）扣底者 */
+function askExclude(state: GameState): number[] {
+  const out = new Set<number>();
+  if (state.declaration) out.add(state.declaration.seat);
+  if (state.postKitty && state.kittyOwner !== null) out.add(state.kittyOwner);
+  return [...out];
 }
 
 function dealAll(state: GameState): ReduceResult {
@@ -196,7 +210,7 @@ function pickCards(hand: readonly Card[], ids: readonly string[]): Card[] {
 function declare(state: GameState, seat: number, cardIds: string[]): ReduceResult {
   expectPhase(state, 'dealing', 'declaring');
   const cards = pickCards(state.hands[seat]!, cardIds);
-  if (state.phase === 'declaring' && state.ask && state.ask.seat !== seat) {
+  if (state.phase === 'declaring' && state.ask && state.ask.seat >= 0 && state.ask.seat !== seat) {
     // 例外：当前亮主者可以随时把单张追加为同花色一对（加固）
     const cur0 = state.declaration;
     const isReinforce =
@@ -211,6 +225,9 @@ function declare(state: GameState, seat: number, cardIds: string[]): ReduceResul
   if (!decl) throw new IllegalAction('这些牌不能用来亮主', 'BAD_DECLARE');
   const cur = state.declaration;
   if (cur) {
+    if (cur.seat !== seat && decl.strength < 20) {
+      throw new IllegalAction('反主至少需要一对', 'WEAK_DECLARE');
+    }
     if (decl.strength <= cur.strength)
       throw new IllegalAction('必须比当前亮主更大', 'WEAK_DECLARE');
     if (cur.seat === seat && decl.strength < 30 && cur.trump.suit !== decl.trump.suit) {
@@ -222,11 +239,12 @@ function declare(state: GameState, seat: number, cardIds: string[]): ReduceResul
   if (state.phase === 'dealing') {
     return { state: { ...state, declaration }, events };
   }
-  // declaring 阶段：亮/反后从下家重新逐个询问
+  // declaring 阶段：亮/反后从其下家重新逐个询问
+  const exclude = state.postKitty && state.kittyOwner !== null ? [seat, state.kittyOwner] : [seat];
   let next: GameState = {
     ...state,
     declaration,
-    ask: { seat: nextEligible(seat, [], seat), passes: [] },
+    ask: { seat: nextEligible(exclude, [], seat), passes: [] },
   };
   if (state.postKitty && state.trump && declaration.trump.suit !== state.trump.suit) {
     // 扣底后被反主（换了主花色）：第一局反主者上庄；之后庄家不变，但由反主者拿底重扣
@@ -241,15 +259,22 @@ function declare(state: GameState, seat: number, cardIds: string[]): ReduceResul
   return { state: next, events };
 }
 
-/** 被询问者选择“过” */
+/** 选择“过”：开放窗口下任何人可过；反主轮询下只有被问到的人可过 */
 function passDeclare(state: GameState, seat: number): ReduceResult {
   expectPhase(state, 'declaring');
-  if (!state.ask || state.ask.seat !== seat)
-    throw new IllegalAction('还没轮到你表态', 'NOT_YOUR_TURN');
+  if (!state.ask) throw new IllegalAction('现在无需表态', 'NOT_YOUR_TURN');
+  if (state.ask.seat === -1) {
+    if (state.ask.passes.includes(seat)) throw new IllegalAction('你已选择过', 'ALREADY_PASSED');
+    const passes = [...state.ask.passes, seat];
+    if (passes.length >= 4) return finishDeclareRound({ ...state, ask: null });
+    return { state: { ...state, ask: { seat: -1, passes } }, events: [] };
+  }
+  if (state.ask.seat !== seat) throw new IllegalAction('还没轮到你表态', 'NOT_YOUR_TURN');
   const passes = [...state.ask.passes, seat];
-  const needed = state.declaration ? 3 : 4;
+  const exclude = askExclude(state);
+  const needed = 4 - exclude.length;
   if (passes.length >= needed) return finishDeclareRound({ ...state, ask: null });
-  const nextSeatToAsk = nextEligible(state.declaration?.seat ?? null, passes, seat);
+  const nextSeatToAsk = nextEligible(exclude, passes, seat);
   return { state: { ...state, ask: { seat: nextSeatToAsk, passes } }, events: [] };
 }
 
@@ -314,9 +339,11 @@ function bury(state: GameState, seat: number, cardIds: string[]): ReduceResult {
   const ids = new Set(cardIds);
   const hands = state.hands.map((h) => h.slice()) as GameState['hands'];
   hands[seat] = hands[seat]!.filter((c) => !ids.has(c.id));
-  // 扣完底后给其他人一轮反主机会
-  const from = state.declaration ? state.declaration.seat : seat;
-  const first = nextEligible(state.declaration?.seat ?? null, [], from);
+  // 扣完底后：从扣底者的下家开始，依次询问其余人是否反主
+  const excludeAfterBury = state.declaration
+    ? [...new Set([seat, state.declaration.seat])]
+    : [seat];
+  const first = nextEligible(excludeAfterBury, [], seat);
   return {
     state: {
       ...state,
@@ -449,7 +476,7 @@ function finishRound(
 export function currentActor(state: GameState): number | null {
   switch (state.phase) {
     case 'declaring':
-      return state.ask?.seat ?? null;
+      return state.ask && state.ask.seat >= 0 ? state.ask.seat : null;
     case 'kitty':
       return state.kittyOwner ?? state.dealer;
     case 'playing':

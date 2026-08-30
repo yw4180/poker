@@ -108,7 +108,10 @@ export function randomAction(
       return null;
     }
     case 'declaring': {
-      if (state.ask?.seat !== seat) return null;
+      if (!state.ask) return null;
+      const open = state.ask.seat === -1;
+      if (open && state.ask.passes.includes(seat)) return null;
+      if (!open && state.ask.seat !== seat) return null;
       const opts = legalDeclareOptions(hand, state.level, state.declaration, seat);
       if (opts.length && rng() < 0.35) {
         return { type: 'DECLARE', seat, cardIds: opts[0]!.cardIds };

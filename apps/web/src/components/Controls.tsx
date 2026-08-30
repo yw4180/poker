@@ -99,7 +99,9 @@ export function Controls({ game, room }: { game: GameView; room: RoomView; userI
   if (game.phase === 'dealing' || game.phase === 'declaring') {
     const options = legalDeclareOptions(game.hand, game.level, game.declaration, me);
     const myTurnToAsk = game.phase === 'declaring' && game.ask?.seat === me;
-    const canJumpIn = game.phase === 'dealing';
+    const openWindow = game.phase === 'declaring' && game.ask?.seat === -1;
+    const iPassed = !!game.ask?.passes.includes(me);
+    const canJumpIn = game.phase === 'dealing' || (openWindow && !iPassed);
     // 亮主者随时可加固（同花色第二张升级为一对）
     const canReinforce =
       game.phase === 'declaring' &&
@@ -126,15 +128,19 @@ export function Controls({ game, room }: { game: GameView; room: RoomView; userI
                 : `${SUIT_SYMBOL[o.suit]}${o.strength === 2 ? ' 一对' : ''}`}
             </Button>
           ))}
-        {myTurnToAsk && (
+        {(myTurnToAsk || (openWindow && !iPassed)) && (
           <Button
             variant={options.length ? 'ghost' : 'primary'}
             onClick={() => send({ type: 'PASS_DECLARE' })}
           >
-            过
+            过{openWindow ? `（${game.ask?.passes.length ?? 0}/4）` : ''}
           </Button>
         )}
-        {game.phase === 'declaring' && !myTurnToAsk && (
+        {openWindow && iPassed && (
+          <span className="text-muted">已过，等待其他人（{game.ask?.passes.length ?? 0}/4）</span>
+        )}
+        {openWindow && !game.declaration && <span className="text-muted">谁先亮就是谁的主</span>}
+        {game.phase === 'declaring' && !myTurnToAsk && !openWindow && (
           <span className="text-muted">
             等待 {game.players[game.ask?.seat ?? 0]?.name} 决定是否
             {game.declaration ? '反主' : '亮主'}
@@ -153,7 +159,7 @@ export function Controls({ game, room }: { game: GameView; room: RoomView; userI
             发牌中 · 剩 <span className="font-mono">{Math.max(0, game.deckCount - 8)}</span> 张
           </span>
         )}
-        {myTurnToAsk && opts.declareWindowSec > 0 && game.deadlineAt && (
+        {(myTurnToAsk || openWindow) && opts.declareWindowSec > 0 && game.deadlineAt && (
           <Countdown
             deadlineAt={game.deadlineAt}
             totalMs={opts.declareWindowSec * 1000}

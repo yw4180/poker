@@ -564,8 +564,25 @@ export class Room {
     const g = this.game;
     if (!g) return;
     const actor = currentActor(g);
-    const seat = actor !== null ? this.seats[actor] : null;
     const declaring = g.phase === 'declaring';
+    // 开放亮主窗口：无单一行动者，超时直接结束（翻底定主）
+    if (declaring && g.ask && g.ask.seat === -1) {
+      if (this.declareWindowMs === 0) {
+        this.deadlineAt = null;
+        return;
+      }
+      this.deadlineAt = Date.now() + this.declareWindowMs;
+      const expectedRound = g.roundNo;
+      this.turnTimer = setTimeout(() => {
+        const now = this.game;
+        if (!now || now.roundNo !== expectedRound || now.phase !== 'declaring') return;
+        if (!now.ask || now.ask.seat !== -1 || now.declaration) return;
+        this.apply({ type: 'END_DECLARING' });
+        this.scheduleBots();
+      }, this.declareWindowMs);
+      return;
+    }
+    const seat = actor !== null ? this.seats[actor] : null;
     const windowMs = declaring ? this.declareWindowMs : this.options.turnTimeoutSec * 1000;
     if (actor === null || !seat || seat.bot || windowMs === 0) {
       this.deadlineAt = null;

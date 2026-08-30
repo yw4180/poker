@@ -29,14 +29,9 @@ function setup(): GameState {
       .map((suit) => s.hands[2]!.filter((c) => c.rank === 2 && c.suit === suit))
       .find((g) => g.length === 2);
     if (!zero || !pair) continue;
-    // 轮询中让被问到的人过或亮
-    let guard = 0;
-    while (s.phase === 'declaring' && !s.declaration) {
-      const seat = s.ask!.seat;
-      if (seat === 0) s = reduce(s, { type: 'DECLARE', seat: 0, cardIds: [zero.id] }).state;
-      else s = reduce(s, { type: 'PASS_DECLARE', seat }).state;
-      if (++guard > 10) break;
-    }
+    // 开放窗口：0 号直接亮
+    expect(s.ask!.seat).toBe(-1);
+    s = reduce(s, { type: 'DECLARE', seat: 0, cardIds: [zero.id] }).state;
     while (s.phase === 'declaring')
       s = reduce(s, { type: 'PASS_DECLARE', seat: s.ask!.seat }).state;
     if (s.phase !== 'kitty' || s.dealer !== 0) continue;
@@ -88,8 +83,7 @@ describe('declare strength with suit ranking', () => {
     hands[1] = [take('D2a'), take('D2b'), ...hands[1]!.filter((c) => c.rank !== 2).slice(0, 23)];
     hands[3] = [take('S2a'), ...hands[3]!.filter((c) => c.rank !== 2).slice(0, 24)];
     s = { ...s, hands };
-    // 0 号被问到时亮 ♣ 单张
-    while (s.ask!.seat !== 0) s = reduce(s, { type: 'PASS_DECLARE', seat: s.ask!.seat }).state;
+    // 开放窗口：0 号先亮 ♣ 单张
     s = reduce(s, { type: 'DECLARE', seat: 0, cardIds: ['C2a'] }).state;
     expect(s.declaration!.strength).toBe(11); // 10 + ♣(1)
     // 1 号想用 ♦ 对反：对子(20+0) > 单张(11) ✓ 允许
@@ -115,7 +109,6 @@ describe('declare strength with suit ranking', () => {
     const hands = s.hands.map((h) => h.slice()) as typeof s.hands;
     hands[0] = [take('H2a'), take('H2b'), ...hands[0]!.filter((c) => c.rank !== 2).slice(0, 23)];
     s = { ...s, hands };
-    while (s.ask!.seat !== 0) s = reduce(s, { type: 'PASS_DECLARE', seat: s.ask!.seat }).state;
     s = reduce(s, { type: 'DECLARE', seat: 0, cardIds: ['H2a'] }).state;
     // 现在轮到别人表态，但 0 号仍可加固
     expect(s.ask!.seat).not.toBe(0);

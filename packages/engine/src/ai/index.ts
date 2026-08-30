@@ -15,7 +15,12 @@ export function smartAction(
     case 'dealing':
       return chooseDeclare(state, seat);
     case 'declaring': {
-      if (state.ask?.seat !== seat) return null;
+      if (!state.ask) return null;
+      if (state.ask.seat === -1) {
+        if (state.ask.passes.includes(seat)) return null;
+        return chooseDeclare(state, seat) ?? { type: 'PASS_DECLARE', seat };
+      }
+      if (state.ask.seat !== seat) return null;
       return chooseDeclare(state, seat) ?? { type: 'PASS_DECLARE', seat };
     }
     case 'kitty':

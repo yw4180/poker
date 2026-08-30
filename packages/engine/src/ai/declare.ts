@@ -77,6 +77,7 @@ export function legalDeclareOptions(
 ): DeclareOption[] {
   return declareOptions(hand, level).filter((o) => {
     if (!cur) return true;
+    if (cur.seat !== seat && o.strength < 20) return false; // 反主至少一对
     if (o.strength <= cur.strength) return false;
     if (cur.seat === seat && o.strength < 30 && o.suit !== cur.trump.suit) return false;
     return true;
