@@ -52,9 +52,14 @@ export function Table({
   game,
   room,
   voids,
+  userId,
+  onSeatAction,
 }: {
   game: GameView;
   room: RoomView;
+  userId?: string;
+  /** 座位操作：接管机器人 / 换成机器人 */
+  onSeatAction?: (action: 'takeover' | 'fillBot', seat: number) => void;
   /** 各座位已确认缺的花色（记牌器开启时显示） */
   voids?: string[][];
 }) {
@@ -90,6 +95,28 @@ export function Table({
             </span>
             {isDealer && <Tag tone="warn">庄</Tag>}
           </div>
+          {onSeatAction && userId && (
+            <>
+              {game.seat < 0 && isBot && (
+                <button
+                  type="button"
+                  className="mt-0.5 rounded bg-accent/20 px-1.5 text-[11px] text-accent hover:bg-accent/30"
+                  onClick={() => onSeatAction('takeover', seat)}
+                >
+                  接管
+                </button>
+              )}
+              {room.hostId === userId && s && !isBot && (s.bot || !s.connected) && (
+                <button
+                  type="button"
+                  className="mt-0.5 rounded bg-white/10 px-1.5 text-[11px] text-muted hover:bg-white/20"
+                  onClick={() => onSeatAction('fillBot', seat)}
+                >
+                  换机器人
+                </button>
+              )}
+            </>
+          )}
           <div className="flex items-center gap-1.5 text-[11px] text-muted">
             <span className="font-mono">{game.handCounts[seat]}</span> 张
             {s?.bot && !isBot && <span className="text-amber-300">托管</span>}

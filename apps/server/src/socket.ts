@@ -125,6 +125,7 @@ export function attachSocket(http: HttpServer, deps: SocketDeps): { io: IO; room
     on('room:stand', () => current().stand(user.id));
     on('room:addBot', (p) => current().addBot(user.id, p.seat));
     on('room:removeBot', (p) => current().removeBot(user.id, p.seat));
+    on('room:fillBot', (p) => current().fillBot(user.id, p.seat));
     on('room:start', () => current().start(user.id));
     on('room:nextRound', () => current().nextRound(user.id));
     on('room:autoplay', (p) => current().setAutoplay(user.id, p.on));

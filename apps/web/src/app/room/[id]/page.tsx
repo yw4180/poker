@@ -140,7 +140,18 @@ function RoomPage({ user }: { user: { id: string; name: string } }) {
         <div className="grid gap-4 lg:items-start lg:grid-cols-[minmax(0,1fr)_300px]">
           <div className="flex min-h-0 flex-col gap-3">
             <InfoBar game={game} />
-            <Table game={game} room={room} voids={voids} />
+            <Table
+              game={game}
+              room={room}
+              voids={voids}
+              userId={user.id}
+              onSeatAction={async (action, seat) => {
+                const r = await request(action === 'takeover' ? 'room:sit' : 'room:fillBot', {
+                  seat,
+                });
+                if (!r.ok) notify(r.error ?? '操作失败');
+              }}
+            />
             <UndoBanner room={room} mySeat={mySeat} />
             {showLastTrick && <LastTrick game={game} />}
             {showKitty && game.kitty && <KittyPanel game={game} />}

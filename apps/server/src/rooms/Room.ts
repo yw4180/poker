@@ -221,7 +221,10 @@ export class Room {
 
   sit(userId: string, seat: number) {
     this.touch();
-    if (this.status !== 'lobby') throw new Error('对局进行中不能换座');
+    if (this.status !== 'lobby') {
+      this.takeOverBot(userId, seat);
+      return;
+    }
     if (this.seats[seat]) throw new Error('该座位已有人');
     const old = this.seatOf(userId);
     const spec = this.spectators.get(userId);
@@ -235,13 +238,85 @@ export class Room {
 
   stand(userId: string) {
     this.touch();
-    if (this.status !== 'lobby') throw new Error('对局进行中不能离座');
     const seat = this.seatOf(userId);
     if (seat < 0) return;
+    if (this.status !== 'lobby') {
+      // 对局中离座：座位交给正式机器人，本人转为旁观
+      const { name, avatar } = this.seats[seat]!;
+      this.convertSeatToBot(seat);
+      this.spectators.set(userId, { name, avatar });
+      this.systemMessage(`${name} 离座，由 ${this.seats[seat]!.name} 接替`);
+      this.broadcastRoom();
+      this.broadcastGame();
+      this.scheduleBots();
+      return;
+    }
     const { name, avatar } = this.seats[seat]!;
     this.seats[seat] = null;
     this.spectators.set(userId, { name, avatar });
     this.broadcastRoom();
+  }
+
+  /** 把某个座位换成正式机器人（对局中用） */
+  private convertSeatToBot(seat: number) {
+    const name = randomBotName(this.seats.filter((x): x is Seat => !!x).map((x) => x.name));
+    this.seats[seat] = {
+      userId: `bot:${this.id}:${seat}:${Date.now()}`,
+      name,
+      avatar: botAvatarUrl(name),
+      ready: true,
+      connected: true,
+      bot: true,
+    };
+    this.syncPlayer(seat);
+  }
+
+  /** 旁观者对局中接管纯机器人座位 */
+  private takeOverBot(userId: string, seat: number) {
+    if (this.seatOf(userId) >= 0) throw new Error('你已经在座位上');
+    const target = this.seats[seat];
+    if (!target || !target.userId.startsWith('bot:')) throw new Error('只能接管机器人座位');
+    const spec = this.spectators.get(userId);
+    if (!spec) throw new Error('请先进入房间');
+    this.spectators.delete(userId);
+    this.seats[seat] = {
+      userId,
+      name: spec.name,
+      avatar: spec.avatar,
+      ready: true,
+      connected: true,
+      bot: false,
+    };
+    this.syncPlayer(seat);
+    this.systemMessage(`${spec.name} 接管了 ${target.name} 的座位`);
+    this.broadcastRoom();
+    this.broadcastGame();
+    this.armTurnTimer();
+  }
+
+  /** 房主把托管/掉线的座位换成正式机器人（原玩家转为旁观） */
+  fillBot(byUserId: string, seat: number) {
+    this.requireHost(byUserId);
+    if (this.status !== 'playing') throw new Error('对局未开始');
+    const target = this.seats[seat];
+    if (!target) throw new Error('座位为空');
+    if (target.userId.startsWith('bot:')) throw new Error('该座位已是机器人');
+    if (target.connected && !target.bot) throw new Error('该玩家在线且未托管，不能替换');
+    this.convertSeatToBot(seat);
+    this.spectators.set(target.userId, { name: target.name, avatar: target.avatar });
+    this.systemMessage(`${target.name} 的座位由 ${this.seats[seat]!.name} 接替`);
+    this.broadcastRoom();
+    this.broadcastGame();
+    this.scheduleBots();
+  }
+
+  /** 座位人员变化后同步到引擎的 players 信息 */
+  private syncPlayer(seat: number) {
+    if (!this.game) return;
+    const s = this.seats[seat]!;
+    const players = this.game.players.slice() as GameState['players'];
+    players[seat] = { id: s.userId, name: s.name, avatar: s.avatar };
+    this.game = { ...this.game, players };
   }
 
   addBot(byUserId: string, seat: number) {

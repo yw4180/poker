@@ -154,3 +154,36 @@ describe('persistence', () => {
     restored.dispose();
   });
 });
+
+describe('mid-game seat swap', () => {
+  it('stand converts seat to a real bot; spectator can take over a bot seat; host can fill a detached seat', async () => {
+    const room = new Room('TESTA', 't', 'alice', 'Alice', sink, fast);
+    room.enter('alice', 'Alice');
+    room.sit('alice', 0);
+    room.enter('carol', 'Carol'); // 旁观者
+    for (const seat of [1, 2, 3]) room.addBot('alice', seat);
+    room.start('alice');
+
+    // 旁观者接管机器人座位
+    room.sit('carol', 2);
+    expect(room.seats[2]?.userId).toBe('carol');
+    expect(room.seats[2]?.bot).toBe(false);
+    expect(room.game!.players[2]!.name).toBe('Carol');
+
+    // 对局中离座 → 换成正式机器人，本人转旁观
+    room.stand('carol');
+    expect(room.seats[2]?.bot).toBe(true);
+    expect(room.seats[2]?.userId.startsWith('bot:')).toBe(true);
+    expect(room.spectators.has('carol')).toBe(true);
+    expect(room.game!.players[2]!.id.startsWith('bot:')).toBe(true);
+
+    // 房主把托管座位换成机器人
+    room.setAutoplay('alice', true); // alice 托管
+    room.fillBot('alice', 0);
+    expect(room.seats[0]?.userId.startsWith('bot:')).toBe(true);
+    expect(room.spectators.has('alice')).toBe(true);
+    // 在线未托管的座位不能被替换
+    expect(() => room.fillBot('alice', 0)).toThrow();
+    room.dispose();
+  });
+});

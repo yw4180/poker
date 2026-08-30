@@ -263,6 +263,15 @@ export function Controls({ game, room }: { game: GameView; room: RoomView; userI
         >
           {showLast ? '关闭' : '上一墩'}
         </Button>
+        <Button
+          variant="ghost"
+          onClick={async () => {
+            const r = await request('room:stand', {});
+            if (!r.ok) notify(r.error ?? '操作失败');
+          }}
+        >
+          离座
+        </Button>
         {game.kitty && (
           <Button variant="ghost" onClick={() => setShowKitty(!showKitty)}>
             {showKitty ? '收起底牌' : '看底牌'}

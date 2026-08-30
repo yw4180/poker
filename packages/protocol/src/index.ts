@@ -64,6 +64,7 @@ export const ClientEvents = {
   'room:stand': z.object({}),
   'room:addBot': z.object({ seat: z.number().int().min(0).max(3) }),
   'room:removeBot': z.object({ seat: z.number().int().min(0).max(3) }),
+  'room:fillBot': z.object({ seat: z.number().int().min(0).max(3) }),
   'room:start': z.object({}),
   'room:nextRound': z.object({}),
   'room:autoplay': z.object({ on: z.boolean() }),
@@ -151,6 +152,7 @@ export interface ClientToServerEvents {
   'room:stand': (p: ClientPayload<'room:stand'>, ack: (r: Ack) => void) => void;
   'room:addBot': (p: ClientPayload<'room:addBot'>, ack: (r: Ack) => void) => void;
   'room:removeBot': (p: ClientPayload<'room:removeBot'>, ack: (r: Ack) => void) => void;
+  'room:fillBot': (p: ClientPayload<'room:fillBot'>, ack: (r: Ack) => void) => void;
   'room:start': (p: ClientPayload<'room:start'>, ack: (r: Ack) => void) => void;
   'room:nextRound': (p: ClientPayload<'room:nextRound'>, ack: (r: Ack) => void) => void;
   'room:autoplay': (p: ClientPayload<'room:autoplay'>, ack: (r: Ack) => void) => void;
