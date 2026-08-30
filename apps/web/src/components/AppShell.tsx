@@ -1,5 +1,6 @@
 'use client';
 import Link from 'next/link';
+import { useStore } from '@/lib/store';
 
 /** 顶部导航 + 内容容器 */
 export function AppShell({
@@ -16,8 +17,18 @@ export function AppShell({
   /** 大屏下正文占满视口剩余高度，内部各自滚动 */
   fill?: boolean;
 }) {
+  const staleClient = useStore((s) => s.staleClient);
   return (
     <div className="flex min-h-screen flex-col">
+      {staleClient && (
+        <button
+          type="button"
+          onClick={() => window.location.reload()}
+          className="w-full bg-amber-400 py-1.5 text-center text-[13px] font-medium text-black"
+        >
+          牌桌已更新到新版本 · 点击这里刷新页面（牌局会保留）
+        </button>
+      )}
       <header className="sticky top-0 z-30 border-b border-white/[0.06] bg-bg/80 backdrop-blur">
         <div
           className={`mx-auto flex h-12 items-center gap-4 px-4 ${wide ? 'max-w-[1400px]' : 'max-w-3xl'}`}

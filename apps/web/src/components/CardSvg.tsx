@@ -208,8 +208,8 @@ function FaceCard({ rank, suit, color }: { rank: string; suit: string; color: st
 
 function Joker({ big }: { big: boolean }) {
   const id = big ? 'jk-red' : 'jk-black';
-  const c1 = big ? '#be123c' : '#0f172a';
-  const c2 = big ? '#fb7185' : '#475569';
+  const c1 = big ? '#9f1239' : '#1e293b';
+  const c2 = big ? '#fb7185' : '#64748b';
   return (
     <g>
       <defs>
@@ -236,7 +236,7 @@ function Joker({ big }: { big: boolean }) {
         fontSize="13"
         fontWeight="800"
         fontFamily="Inter, ui-sans-serif, system-ui"
-        fill="#fff"
+        fill={big ? '#fde047' : '#e2e8f0'}
         letterSpacing="2"
         transform="rotate(90 15 16)"
       >
@@ -248,17 +248,28 @@ function Joker({ big }: { big: boolean }) {
         fontSize="13"
         fontWeight="800"
         fontFamily="Inter, ui-sans-serif, system-ui"
-        fill="#fff"
+        fill={big ? '#fde047' : '#e2e8f0'}
         letterSpacing="2"
         transform="rotate(-90 85 134)"
       >
         JOKER
       </text>
+      {big && <path d="M32 34 L40 44 L50 30 L60 44 L68 34 L65 50 L35 50 Z" fill="#fde047" />}
       <path
-        d="M50 48 L57 69 L79 69 L61 82 L68 103 L50 90 L32 103 L39 82 L21 69 L43 69Z"
-        fill="#fff"
-        fillOpacity="0.95"
+        d="M50 58 L57 79 L79 79 L61 92 L68 113 L50 100 L32 113 L39 92 L21 79 L43 79Z"
+        fill={big ? '#fde047' : '#e2e8f0'}
       />
+      <text
+        x="50"
+        y="132"
+        textAnchor="middle"
+        fontSize="15"
+        fontWeight="800"
+        fontFamily="ui-sans-serif, system-ui"
+        fill={big ? '#fde047' : '#e2e8f0'}
+      >
+        {big ? '大' : '小'}
+      </text>
     </g>
   );
 }

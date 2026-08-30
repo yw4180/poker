@@ -133,6 +133,11 @@ function dealCard(state: GameState): ReduceResult {
   let next = dealOne(state);
   if (next.deck.length === state.config.kittySize) {
     next = enterDeclaring(next);
+    // 大王对无人能反，直接结束亮主
+    if (next.phase === 'declaring' && next.declaration && next.declaration.strength >= 40) {
+      const fin = finishDeclareRound({ ...next, ask: null });
+      return { state: fin.state, events: [{ type: 'dealt', seat }, ...fin.events] };
+    }
   }
   return { state: next, events: [{ type: 'dealt', seat }] };
 }
@@ -173,7 +178,11 @@ function dealAll(state: GameState): ReduceResult {
   expectPhase(state, 'dealing');
   let s = state;
   while (s.deck.length > state.config.kittySize) s = dealOne(s);
-  return { state: enterDeclaring(s), events: [] };
+  const entered = enterDeclaring(s);
+  if (entered.declaration && entered.declaration.strength >= 40) {
+    return finishDeclareRound({ ...entered, ask: null });
+  }
+  return { state: entered, events: [] };
 }
 
 /** 花色序：♠ > ♥ > ♣ > ♦ */
@@ -239,13 +248,20 @@ function declare(state: GameState, seat: number, cardIds: string[]): ReduceResul
   if (state.phase === 'dealing') {
     return { state: { ...state, declaration }, events };
   }
-  // declaring 阶段：亮/反后从其下家重新逐个询问
+  // declaring 阶段：亮/反后从其下家重新逐个询问；大王对无人能反，免询问
   const exclude = state.postKitty && state.kittyOwner !== null ? [seat, state.kittyOwner] : [seat];
   let next: GameState = {
     ...state,
     declaration,
     ask: { seat: nextEligible(exclude, [], seat), passes: [] },
   };
+  if (
+    declaration.strength >= 40 &&
+    !(state.postKitty && state.trump && declaration.trump.suit !== state.trump.suit)
+  ) {
+    const fin = finishDeclareRound({ ...next, ask: null });
+    return { state: fin.state, events: [...events, ...fin.events] };
+  }
   if (state.postKitty && state.trump && declaration.trump.suit !== state.trump.suit) {
     // 扣底后被反主（换了主花色）：第一局反主者上庄；之后庄家不变，但由反主者拿底重扣
     const trump = declaration.trump;
@@ -339,7 +355,20 @@ function bury(state: GameState, seat: number, cardIds: string[]): ReduceResult {
   const ids = new Set(cardIds);
   const hands = state.hands.map((h) => h.slice()) as GameState['hands'];
   hands[seat] = hands[seat]!.filter((c) => !ids.has(c.id));
-  // 扣完底后：从扣底者的下家开始，依次询问其余人是否反主
+  // 扣完底后：从扣底者的下家开始，依次询问其余人是否反主；大王对免询问
+  if (state.declaration && state.declaration.strength >= 40) {
+    const buried: GameState = {
+      ...state,
+      phase: 'declaring',
+      postKitty: true,
+      ask: null,
+      hands,
+      kitty: cards,
+      trick: null,
+    };
+    const fin = finishDeclareRound(buried);
+    return { state: fin.state, events: [{ type: 'kittyBuried', seat }, ...fin.events] };
+  }
   const excludeAfterBury = state.declaration
     ? [...new Set([seat, state.declaration.seat])]
     : [seat];

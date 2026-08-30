@@ -133,6 +133,8 @@ export type GameView = PlayerView & {
 };
 
 export interface ServerToClientEvents {
+  /** 连接后服务器告知本次进程标识；页面持有的标识与之不同说明服务端已更新 */
+  'server:info': (info: { bootId: string }) => void;
   'room:state': (room: RoomView) => void;
   'room:closed': () => void;
   'game:state': (view: GameView) => void;

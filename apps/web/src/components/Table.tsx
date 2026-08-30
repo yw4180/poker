@@ -143,18 +143,16 @@ export function Table({
       if (lead) {
         let current = lead;
         winnerSeat = first.seat;
+        let winningRuffs = 0;
         for (const p of showPlays.slice(1)) {
+          const isRuff = lead.suit !== 'T' && p.cards.every((c) => effectiveSuit(c, t) === 'T');
           if (beats(current, p.cards, lead, t)) {
             winnerSeat = p.seat;
             current = classify(p.cards, t)!;
+            // 只有真正压过当前最大时才算毙/盖毙
+            if (isRuff) labels.set(p.seat, winningRuffs++ === 0 ? '毙' : '盖毙');
           }
         }
-        // 将吃标签：第一个将吃"毙"，其后的"盖毙"
-        const ruffSeats = showPlays
-          .slice(1)
-          .filter((p) => lead.suit !== 'T' && p.cards.every((c) => effectiveSuit(c, t) === 'T'))
-          .map((p) => p.seat);
-        ruffSeats.forEach((rs, i) => labels.set(rs, i === 0 ? '毙' : '盖毙'));
       }
     }
     return { labels, winnerSeat };

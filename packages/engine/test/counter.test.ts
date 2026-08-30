@@ -117,3 +117,26 @@ describe('declare strength with suit ranking', () => {
     expect(s.declaration!.seat).toBe(0);
   });
 });
+
+describe('big joker pair skips asking', () => {
+  it('goes straight to kitty and then straight to playing', () => {
+    const rng = seededRandom(21);
+    let s = createGame([...players]);
+    s = reduce(s, { type: 'START_ROUND', deck: shuffle(makeDeck(), rng) }).state;
+    s = reduce(s, { type: 'DEAL_ALL' }).state;
+    const take = (id: string) => makeDeck().find((c) => c.id === id)!;
+    const hands = s.hands.map((h) => h.slice()) as typeof s.hands;
+    hands[1] = [take('BJa'), take('BJb'), ...hands[1]!.filter((c) => c.suit !== 'J').slice(0, 23)];
+    s = { ...s, hands };
+    // 开放窗口：1 号直接亮大王对 → 免询问，直接进入扣底
+    s = reduce(s, { type: 'DECLARE', seat: 1, cardIds: ['BJa', 'BJb'] }).state;
+    expect(s.phase).toBe('kitty');
+    expect(s.dealer).toBe(1);
+    expect(s.trump!.suit).toBe('NT');
+    // 扣完底也不再询问，直接开打
+    const ids = s.hands[1]!.slice(0, 8).map((c) => c.id);
+    s = reduce(s, { type: 'BURY', seat: 1, cardIds: ids }).state;
+    expect(s.phase).toBe('playing');
+    expect(s.trick!.leader).toBe(1);
+  });
+});

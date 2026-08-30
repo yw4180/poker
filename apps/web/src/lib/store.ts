@@ -11,6 +11,8 @@ export interface LogLine {
 
 interface State {
   connected: boolean;
+  /** 服务端已更新（进程标识变化），提示刷新 */
+  staleClient: boolean;
   /** 页面正在浏览的房间；不属于它的状态一律丢弃 */
   currentRoomId: string | null;
   room: RoomView | null;
@@ -43,6 +45,7 @@ let noticeId = 0;
 
 export const useStore = create<State>((set, get) => ({
   connected: false,
+  staleClient: false,
   currentRoomId: null,
   room: null,
   game: null,
@@ -86,6 +89,11 @@ export const useStore = create<State>((set, get) => ({
   bind: () => {
     const socket = getSocket();
     const onConnect = () => set({ connected: true });
+    let bootId: string | null = null;
+    const onServerInfo = (info: { bootId: string }) => {
+      if (bootId && bootId !== info.bootId) set({ staleClient: true });
+      bootId = info.bootId;
+    };
     const onDisconnect = () => set({ connected: false });
     const onRoom = (room: RoomView) => {
       if (get().currentRoomId && room.id !== get().currentRoomId) return;
@@ -148,6 +156,7 @@ export const useStore = create<State>((set, get) => ({
     };
     const onError = (e: { message: string }) => get().notify(e.message);
     socket.on('connect', onConnect);
+    socket.on('server:info', onServerInfo);
     socket.on('disconnect', onDisconnect);
     socket.on('room:state', onRoom);
     socket.on('game:state', onGame);
@@ -157,6 +166,7 @@ export const useStore = create<State>((set, get) => ({
     if (socket.connected) set({ connected: true });
     return () => {
       socket.off('connect', onConnect);
+      socket.off('server:info', onServerInfo);
       socket.off('disconnect', onDisconnect);
       socket.off('room:state', onRoom);
       socket.off('game:state', onGame);

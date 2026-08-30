@@ -6,6 +6,7 @@ import {
   type ServerToClientEvents,
   ClientEvents,
 } from '@poker/protocol';
+import { randomUUID } from 'node:crypto';
 import type { Server as HttpServer } from 'node:http';
 import { Server, type Socket } from 'socket.io';
 import type { AuthUser } from './auth.js';
@@ -69,8 +70,11 @@ export function attachSocket(http: HttpServer, deps: SocketDeps): { io: IO; room
     }
   });
 
+  const bootId = randomUUID();
+
   io.on('connection', (socket: Sock) => {
     const user = socket.data.user as AuthUser;
+    socket.emit('server:info', { bootId });
     void socket.join(userRoom(user.id));
 
     /** 统一封装：zod 校验 + 错误转 ack */
