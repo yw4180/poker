@@ -18,7 +18,8 @@ export interface Memory {
 export function buildMemory(state: GameState, seat: number): Memory {
   const t = state.trump;
   const seen = new Set<string>();
-  for (const c of state.hands[seat]!) seen.add(c.id);
+  // 旁观者视角 seat 为 -1，此时没有自己的手牌
+  for (const c of state.hands[seat] ?? []) seen.add(c.id);
   if (seat === (state.kittyOwner ?? state.dealer)) for (const c of state.kitty) seen.add(c.id);
   const allPlays = [...state.tricks.flatMap((tr) => tr.plays), ...(state.trick?.plays ?? [])];
   for (const p of allPlays) for (const c of p.cards) seen.add(c.id);

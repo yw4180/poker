@@ -204,3 +204,12 @@ describe('chooseFollowSmart', () => {
 });
 
 void c;
+
+describe('buildMemory as spectator', () => {
+  it('tolerates seat -1', () => {
+    const s = playingState({ hands: [['H5'], ['H6'], ['H7'], ['H8']] });
+    const mem = buildMemory(s, -1);
+    expect(mem.unseen.length).toBe(108);
+    expect(mem.voids).toHaveLength(4);
+  });
+});
