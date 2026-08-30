@@ -38,7 +38,7 @@ cd /srv/proxy && docker compose up -d
 ```bash
 cd /srv/apps/poker/deploy
 cp .env.example .env && nano .env      # 填 DOMAIN / POSTGRES_PASSWORD / BETTER_AUTH_SECRET / Google
-bash deploy.sh                          # 构建、启动、注册站点到反代、自检
+bash deploy.sh                          # 拉取 GHCR 镜像、启动、注册站点到反代、自检
 ```
 
 以后更新：`cd /srv/apps/poker/deploy && bash deploy.sh`（GitHub Actions `deploy.yml` 在 push main 时会自动执行同样的命令）。
@@ -50,6 +50,8 @@ Google Cloud Console → APIs & Services → Credentials → OAuth client (Web)�
 - 授权来源：`https://<DOMAIN>`
 - 回调：`https://<DOMAIN>/api/auth/callback/google`
   把 client id/secret 填进 `.env`，重新 `bash deploy.sh`。
+
+镜像由 `.github/workflows/images.yml` 在每次 push main 时构建并推到 `ghcr.io/yw4180/poker/{server,web}`；服务器不做构建，1 GB 内存也够用。
 
 ## 五、以后新增项目
 

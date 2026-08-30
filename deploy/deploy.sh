@@ -11,8 +11,9 @@ PROXY_DIR="${PROXY_DIR:-/srv/proxy}"
 echo "==> 拉取最新代码"
 git -C .. pull --ff-only
 
-echo "==> 构建并启动容器"
-docker compose --env-file .env up -d --build --remove-orphans
+echo "==> 拉取镜像并启动容器"
+docker compose --env-file .env pull
+docker compose --env-file .env up -d --remove-orphans
 
 echo "==> 更新共享反代的站点配置：$PROXY_DIR/sites/poker.caddy"
 sed "s/\${DOMAIN}/${DOMAIN}/g" sites/poker.caddy.template > "$PROXY_DIR/sites/poker.caddy"
