@@ -26,12 +26,15 @@ export function Hand({
   level,
   interactive,
   highlightIds = [],
+  wrap = false,
 }: {
   cards: Card[];
   trump: Trump | null;
   level: Trump['level'];
   interactive: boolean;
   highlightIds?: string[];
+  /** 允许换行（扣底 33 张时分两层） */
+  wrap?: boolean;
 }) {
   const selected = useStore((s) => s.selected);
   const toggle = useStore((s) => s.toggleSelect);
@@ -41,7 +44,9 @@ export function Hand({
     (a, b) => rank.indexOf(effectiveSuit(a, order)) - rank.indexOf(effectiveSuit(b, order)),
   );
   return (
-    <div className="flex flex-wrap justify-center gap-y-4 px-2 pb-2 pt-4 lg:flex-nowrap lg:overflow-x-auto">
+    <div
+      className={`flex flex-wrap justify-center gap-y-4 px-2 pb-2 pt-4 ${wrap ? '' : 'lg:flex-nowrap lg:overflow-x-auto'}`}
+    >
       {sorted.map((c, i) => {
         const isTrump = effectiveSuit(c, order) === 'T';
         return (

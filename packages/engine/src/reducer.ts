@@ -216,12 +216,13 @@ function declare(state: GameState, seat: number, cardIds: string[]): ReduceResul
     ask: { seat: nextEligible(seat, [], seat), passes: [] },
   };
   if (state.postKitty && state.trump) {
-    // 扣底后被反主：主立即更换，底牌退回庄家重扣
+    // 扣底后被反主：主立即更换；第一局反主者成为新庄家，抠底重扣（后续局庄家固定，仍由庄家重扣）
     const trump = declaration.trump;
+    const dealer = state.roundNo === 1 ? seat : state.dealer!;
     const hands = next.hands.map((h) => h.slice()) as GameState['hands'];
-    hands[next.dealer!] = sortHand([...hands[next.dealer!]!, ...next.kitty], trump);
-    next = { ...next, trump, hands, kitty: [], phase: 'kitty', ask: null };
-    events.push({ type: 'trumpSet', trump, dealer: next.dealer!, fromKitty: false });
+    hands[dealer] = sortHand([...hands[dealer]!, ...next.kitty], trump);
+    next = { ...next, trump, dealer, hands, kitty: [], phase: 'kitty', ask: null };
+    events.push({ type: 'trumpSet', trump, dealer, fromKitty: false });
   }
   return { state: next, events };
 }

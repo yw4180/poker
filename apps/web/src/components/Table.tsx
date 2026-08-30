@@ -1,5 +1,5 @@
 'use client';
-import { effectiveSuit } from '@poker/engine';
+import { beats, classify, effectiveSuit } from '@poker/engine';
 import type { GameView, RoomView } from '@poker/protocol';
 import { Avatar } from './Avatar';
 import { PlayingCard } from './PlayingCard';
@@ -132,14 +132,55 @@ export function Table({
     );
   };
 
+  // 逐手分析：毙/盖毙标签 + 当前最大
+  const trickInfo = (() => {
+    const t = game.trump;
+    const labels = new Map<number, string>();
+    let winnerSeat: number | null = null;
+    if (t && showPlays.length > 0) {
+      const first = showPlays[0]!;
+      const lead = classify(first.cards, t);
+      if (lead) {
+        let current = lead;
+        winnerSeat = first.seat;
+        for (const p of showPlays.slice(1)) {
+          if (beats(current, p.cards, lead, t)) {
+            winnerSeat = p.seat;
+            current = classify(p.cards, t)!;
+          }
+        }
+        // 将吃标签：第一个将吃"毙"，其后的"盖毙"
+        const ruffSeats = showPlays
+          .slice(1)
+          .filter((p) => lead.suit !== 'T' && p.cards.every((c) => effectiveSuit(c, t) === 'T'))
+          .map((p) => p.seat);
+        ruffSeats.forEach((rs, i) => labels.set(rs, i === 0 ? '毙' : '盖毙'));
+      }
+    }
+    return { labels, winnerSeat };
+  })();
+  const inProgress = !!trick && trick.plays.length > 0;
+
   const playsAt = (seat: number) => {
     const play = showPlays.find((p) => p.seat === seat);
     if (!play) return null;
     const won = showingLast && lastTrick?.winner === seat;
+    const biggest = inProgress && trickInfo.winnerSeat === seat;
+    const label = trickInfo.labels.get(seat);
     return (
       <div
-        className={`flex rounded-lg p-1 transition-opacity ${won ? 'ring-2 ring-amber-300/80' : ''} ${showingLast && !won ? 'opacity-60' : ''}`}
+        className={`relative flex rounded-lg p-1 transition-opacity ${won || biggest ? 'ring-2 ring-amber-300/80' : ''} ${showingLast && !won ? 'opacity-60' : ''}`}
       >
+        {biggest && !showingLast && (
+          <span className="absolute -top-2 left-1/2 z-10 -translate-x-1/2 rounded bg-amber-400 px-1 text-[10px] font-bold text-black">
+            最大
+          </span>
+        )}
+        {label && (
+          <span className="absolute -right-1.5 -top-2 z-10 rounded bg-red-500 px-1 text-[10px] font-bold text-white">
+            {label}
+          </span>
+        )}
         {play.cards.map((c, i) => (
           <div key={c.id} className={i === 0 ? '' : '-ml-5 sm:-ml-7'}>
             <PlayingCard
@@ -188,7 +229,7 @@ export function Table({
         trick.plays.length > 0 &&
         trick.lead && (
           <span className="rounded-md bg-black/50 px-2.5 py-1 text-sm font-medium backdrop-blur-sm">
-            本轮{' '}
+            {game.players[trick!.leader]?.name} 领出 ·{' '}
             {trick.lead.suit === 'T' ? (
               <span className="text-amber-300">主牌</span>
             ) : (

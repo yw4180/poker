@@ -163,6 +163,7 @@ function RoomPage({ user }: { user: { id: string; name: string } }) {
                 level={game.level}
                 interactive={interactive}
                 highlightIds={kittyNewIds}
+                wrap={game.phase === 'kitty' && game.actor === mySeat}
               />
             )}
           </div>
