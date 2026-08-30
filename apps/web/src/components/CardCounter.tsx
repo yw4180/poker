@@ -46,6 +46,31 @@ export function CardCounter({ game }: { game: GameView }) {
           </div>
         );
       })}
+      {(() => {
+        const rows = [0, 1, 2, 3]
+          .filter((seat) => seat !== game.seat)
+          .map((seat) => ({ seat, suits: [...mem.voids[seat]!] }))
+          .filter((r) => r.suits.length > 0);
+        if (rows.length === 0) return null;
+        return (
+          <div className="border-t border-white/[0.06] pt-2">
+            <div className="mb-1 text-faint">缺门情报（据垫牌/将吃推断）</div>
+            {rows.map((r) => (
+              <div key={r.seat} className="flex items-center gap-1.5">
+                <span className="max-w-24 truncate">{game.players[r.seat]?.name}</span>
+                {r.suits.map((s) => (
+                  <span
+                    key={s}
+                    className={`rounded border border-red-300/40 bg-red-500/10 px-1 font-mono text-[11px] ${s === 'H' || s === 'D' ? 'text-red-300' : 'text-white/90'}`}
+                  >
+                    缺{NAME[s]}
+                  </span>
+                ))}
+              </div>
+            ))}
+          </div>
+        );
+      })()}
       <div className="text-faint">含底牌 {game.kittyCount} 张（仅庄家已知）</div>
     </div>
   );

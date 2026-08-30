@@ -21,6 +21,8 @@ export const RoomOptionsSchema = z.object({
   declareWindowSec: z.union([z.literal(3), z.literal(6), z.literal(10), z.literal(15)]),
   /** 底牌翻倍：double 固定×2；exp 拖拉机 2^n */
   kittyBonus: z.enum(['double', 'exp']),
+  /** 起打级别（升到 A 获胜） */
+  startLevel: z.number().int().min(2).max(13),
 });
 export type RoomOptions = z.infer<typeof RoomOptionsSchema>;
 export const DEFAULT_ROOM_OPTIONS: RoomOptions = {
@@ -30,6 +32,7 @@ export const DEFAULT_ROOM_OPTIONS: RoomOptions = {
   turnTimeoutSec: 0,
   declareWindowSec: 6,
   kittyBonus: 'exp',
+  startLevel: 2,
 };
 
 /** 玩家可主动发起的引擎动作（发牌/结束亮主等由服务器驱动） */

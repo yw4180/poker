@@ -307,7 +307,10 @@ export class Room {
       name: s!.name,
       avatar: s!.avatar,
     })) as [PlayerInfo, PlayerInfo, PlayerInfo, PlayerInfo];
-    this.game = createGame(players, { kittyBonus: this.options.kittyBonus });
+    this.game = createGame(players, {
+      kittyBonus: this.options.kittyBonus,
+      startLevel: this.options.startLevel as 2,
+    });
     this.status = 'playing';
     this.broadcastRoom();
     this.beginRound();

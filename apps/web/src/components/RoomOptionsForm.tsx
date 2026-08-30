@@ -1,9 +1,11 @@
 'use client';
 import { type RoomOptions, DEFAULT_ROOM_OPTIONS } from '@poker/protocol';
 import { Select } from './ui';
+import { levelText } from '@/lib/store';
 
 const TIMEOUTS: RoomOptions['turnTimeoutSec'][] = [0, 20, 40, 60];
 const DECLARE: RoomOptions['declareWindowSec'][] = [3, 6, 10, 15];
+const LEVELS: RoomOptions['startLevel'][] = [2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13];
 
 export function RoomOptionsForm({
   value,
@@ -44,7 +46,7 @@ export function RoomOptionsForm({
       </button>
     </label>
   );
-  const Row = <K extends 'turnTimeoutSec' | 'declareWindowSec' | 'kittyBonus'>({
+  const Row = <K extends 'turnTimeoutSec' | 'declareWindowSec' | 'kittyBonus' | 'startLevel'>({
     k,
     label,
     opts,
@@ -83,6 +85,11 @@ export function RoomOptionsForm({
       />
       <Row k="declareWindowSec" label="亮主窗口" opts={DECLARE.map((v) => ({ v, t: `${v} 秒` }))} />
       <Row
+        k="startLevel"
+        label="从几打起"
+        opts={LEVELS.map((v) => ({ v, t: `打 ${levelText(v)}` }))}
+      />
+      <Row
         k="kittyBonus"
         label="底牌翻倍"
         opts={[
@@ -102,6 +109,7 @@ export function optionsSummary(o: RoomOptions): string {
     o.turnTimeoutSec ? `${o.turnTimeoutSec}s 倒计时` : '不限时',
     `亮主 ${o.declareWindowSec}s`,
     o.kittyBonus === 'exp' ? '底牌 2ⁿ' : '底牌 ×2',
+    o.startLevel !== 2 ? `从 ${o.startLevel} 打起` : null,
   ]
     .filter(Boolean)
     .join(' · ');

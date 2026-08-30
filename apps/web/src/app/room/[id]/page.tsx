@@ -15,6 +15,8 @@ import { InfoBar, Table } from '@/components/Table';
 import { UndoBanner } from '@/components/UndoBanner';
 import { Button, Code, Panel, Tag } from '@/components/ui';
 import { request } from '@/lib/socket';
+import { buildMemory } from '@poker/engine';
+import { stateFromView } from '@/lib/engine-view';
 import { roomTitle } from '@/lib/room-name';
 import { useStore } from '@/lib/store';
 
@@ -32,6 +34,11 @@ function RoomPage({ user }: { user: { id: string; name: string } }) {
   const roundEndDismissed = useStore((s) => s.roundEndDismissed);
   const enterRoom = useStore((s) => s.enterRoom);
   const [showCounter, setShowCounter] = useState(true);
+  // 缺门情报：仅记牌器开启且主牌已定时计算
+  const voids =
+    room?.options.cardCounter && game?.trump && game.phase === 'playing'
+      ? buildMemory(stateFromView(game), game.seat).voids.map((s) => [...s])
+      : undefined;
 
   useEffect(() => enterRoom(id.toUpperCase()), [enterRoom, id]);
   useEffect(() => bind(), [bind]);
@@ -131,7 +138,7 @@ function RoomPage({ user }: { user: { id: string; name: string } }) {
         <div className="grid gap-4 lg:items-start lg:grid-cols-[minmax(0,1fr)_300px]">
           <div className="flex min-h-0 flex-col gap-3">
             <InfoBar game={game} />
-            <Table game={game} room={room} />
+            <Table game={game} room={room} voids={voids} />
             <UndoBanner room={room} mySeat={mySeat} />
             {showLastTrick && <LastTrick game={game} />}
             <Controls game={game} room={room} userId={user.id} />

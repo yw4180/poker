@@ -45,7 +45,18 @@ export function InfoBar({ game }: { game: GameView }) {
   );
 }
 
-export function Table({ game, room }: { game: GameView; room: RoomView }) {
+const SUIT_MINI: Record<string, string> = { T: '主', S: '♠', H: '♥', C: '♣', D: '♦' };
+
+export function Table({
+  game,
+  room,
+  voids,
+}: {
+  game: GameView;
+  room: RoomView;
+  /** 各座位已确认缺的花色（记牌器开启时显示） */
+  voids?: string[][];
+}) {
   const me = game.seat >= 0 ? game.seat : 0;
   const trick = game.trick;
   const lastTrick = game.tricks[game.tricks.length - 1];
@@ -82,6 +93,11 @@ export function Table({ game, room }: { game: GameView; room: RoomView }) {
             <span className="font-mono">{game.handCounts[seat]}</span> 张
             {s?.bot && !isBot && <span className="text-amber-300">托管</span>}
             {s && !s.connected && !s.bot && <span className="text-red-300">离线</span>}
+            {voids && voids[seat] && voids[seat]!.length > 0 && seat !== game.seat && (
+              <span className="text-red-300/90">
+                缺{voids[seat]!.map((x) => SUIT_MINI[x]).join('')}
+              </span>
+            )}{' '}
           </div>
         </div>
       </div>
