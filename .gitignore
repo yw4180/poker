@@ -12,3 +12,4 @@ test-results/
 playwright-report/
 apps/server/uploads/
 *.tsbuildinfo
+*.pem
