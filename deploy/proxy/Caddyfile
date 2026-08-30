@@ -1,6 +1,6 @@
 {
-    # Let's Encrypt 证书通知邮箱（可改）
-    email admin@example.com
+    # 可选：Let's Encrypt 证书到期通知邮箱。留空即可；不要填 example.com 之类的占位邮箱（会被拒绝）
+    # email you@example.org
 }
 
 # 每个项目一份站点文件，放在 sites/ 目录

@@ -28,8 +28,7 @@ bash init.sh deploy          # 创建 deploy 用户、装 Docker、开防火墙�
 
 ```bash
 git clone https://github.com/<你的GitHub>/poker.git /srv/apps/poker
-cp -r /srv/apps/poker/deploy/proxy/* /srv/proxy/
-sed -i 's/admin@example.com/你的邮箱/' /srv/proxy/Caddyfile
+cp -r /srv/apps/poker/deploy/proxy/* /srv/proxy/   # 需要证书到期提醒的话，在 Caddyfile 里填你的邮箱
 cd /srv/proxy && docker compose up -d
 ```
 
