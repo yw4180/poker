@@ -16,12 +16,13 @@ export function declareOptions(hand: readonly Card[], level: number): DeclareOpt
     hand.filter((c) => isTrump(c, { suit, level: level as 2 })).length;
   for (const suit of SUITS) {
     const lv = hand.filter((c) => c.suit === suit && c.rank === level);
+    const order = { D: 0, C: 1, H: 2, S: 3 }[suit]!;
     if (lv.length >= 1)
-      out.push({ cardIds: [lv[0]!.id], strength: 1, suit, trumpCount: count(suit) });
+      out.push({ cardIds: [lv[0]!.id], strength: 10 + order, suit, trumpCount: count(suit) });
     if (lv.length >= 2)
       out.push({
         cardIds: lv.slice(0, 2).map((c) => c.id),
-        strength: 2,
+        strength: 20 + order,
         suit,
         trumpCount: count(suit),
       });
@@ -31,14 +32,14 @@ export function declareOptions(hand: readonly Card[], level: number): DeclareOpt
   if (sj.length >= 2)
     out.push({
       cardIds: sj.slice(0, 2).map((c) => c.id),
-      strength: 3,
+      strength: 30,
       suit: 'NT',
       trumpCount: count('NT'),
     });
   if (bj.length >= 2)
     out.push({
       cardIds: bj.slice(0, 2).map((c) => c.id),
-      strength: 4,
+      strength: 40,
       suit: 'NT',
       trumpCount: count('NT'),
     });
@@ -58,12 +59,12 @@ export function chooseDeclare(state: GameState, seat: number): Action | null {
   }
   const minTrumps = cur && cur.seat !== seat ? W.declareOverrideMinTrumps : W.declareMinTrumps;
   const good = opts
-    .filter((o) => o.trumpCount >= minTrumps || o.strength >= 3 || o.strength === 2)
-    .sort((a, b) => b.trumpCount + b.strength * 2 - (a.trumpCount + a.strength * 2));
+    .filter((o) => o.trumpCount >= minTrumps || o.strength >= 20)
+    .sort((a, b) => b.trumpCount + b.strength - (a.trumpCount + a.strength));
   const pick = good[0];
   if (!pick) return null;
   // 对子级牌明显更稳；单张级牌且主不多时不亮
-  if (pick.strength === 1 && pick.trumpCount < minTrumps) return null;
+  if (pick.strength < 20 && pick.trumpCount < minTrumps) return null;
   return { type: 'DECLARE', seat, cardIds: pick.cardIds };
 }
 
@@ -77,7 +78,7 @@ export function legalDeclareOptions(
   return declareOptions(hand, level).filter((o) => {
     if (!cur) return true;
     if (o.strength <= cur.strength) return false;
-    if (cur.seat === seat && o.strength === 2 && o.suit !== cur.trump.suit) return false;
+    if (cur.seat === seat && o.strength < 30 && o.suit !== cur.trump.suit) return false;
     return true;
   });
 }

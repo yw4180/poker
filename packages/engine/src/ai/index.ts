@@ -19,7 +19,7 @@ export function smartAction(
       return chooseDeclare(state, seat) ?? { type: 'PASS_DECLARE', seat };
     }
     case 'kitty':
-      return seat === state.dealer ? chooseBury(state, seat) : null;
+      return seat === (state.kittyOwner ?? state.dealer) ? chooseBury(state, seat) : null;
     case 'playing': {
       const trick = state.trick!;
       if ((trick.leader + trick.plays.length) % 4 !== seat) return null;

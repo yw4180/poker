@@ -116,7 +116,7 @@ export function randomAction(
       return { type: 'PASS_DECLARE', seat };
     }
     case 'kitty': {
-      if (seat !== state.dealer) return null;
+      if (seat !== (state.kittyOwner ?? state.dealer)) return null;
       const t = state.trump!;
       // 扣掉最小的副牌
       const sorted = hand.slice().sort((a, b) => {

@@ -359,7 +359,8 @@ export class Room {
     this.touch();
     const seat = this.seatOf(userId);
     if (seat < 0) throw new Error('你不在座位上');
-    if (this.status !== 'playing') throw new Error('对局未开始');
+    if (on && this.status !== 'playing') throw new Error('对局未开始');
+    if (!on && this.seats[seat]!.userId.startsWith('bot:')) throw new Error('该座位是机器人');
     this.seats[seat]!.bot = on;
     this.broadcastRoom();
     if (on) this.scheduleBots();
@@ -407,6 +408,10 @@ export class Room {
 
   private beginRound() {
     this.readyNext.clear();
+    // 新一局自动取消托管（离线玩家保持托管，避免卡住）
+    for (const s of this.seats) {
+      if (s && s.bot && !s.userId.startsWith('bot:') && s.connected) s.bot = false;
+    }
     this.history = [];
     this.cancelUndo();
     this.broadcastRoom();

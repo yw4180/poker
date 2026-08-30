@@ -43,6 +43,7 @@ export function createGame(
     levels: [cfg.startLevel, cfg.startLevel],
     roundNo: 0,
     dealer: null,
+    kittyOwner: null,
     level: cfg.startLevel,
     trump: null,
     declaration: null,
@@ -109,6 +110,7 @@ function startRound(state: GameState, deck: Card[]): ReduceResult {
       kitty: [],
       ask: null,
       postKitty: false,
+      kittyOwner: null,
       dealTo: state.dealer ?? 0,
       trick: null,
       tricks: [],
@@ -160,19 +162,22 @@ function dealAll(state: GameState): ReduceResult {
   return { state: enterDeclaring(s), events: [] };
 }
 
-/** 亮主强度：1 单张级牌, 2 一对级牌, 3 一对小王(无主), 4 一对大王(无主) */
+/** 花色序：♠ > ♥ > ♣ > ♦ */
+export const SUIT_ORDER: Record<string, number> = { D: 0, C: 1, H: 2, S: 3 };
+
+/** 亮主强度：单张=10+花色序, 一对=20+花色序, 小王对=30, 大王对=40 */
 function declarationOf(cards: Card[], level: Rank): Omit<Declaration, 'seat'> | null {
   if (cards.length === 1) {
     const c = cards[0]!;
     if (c.rank !== level || c.suit === 'J') return null;
-    return { cards, trump: { suit: c.suit, level }, strength: 1 };
+    return { cards, trump: { suit: c.suit, level }, strength: 10 + SUIT_ORDER[c.suit]! };
   }
   if (cards.length === 2 && cardKey(cards[0]!) === cardKey(cards[1]!)) {
     const c = cards[0]!;
-    if (c.rank === BIG_JOKER) return { cards, trump: { suit: 'NT', level }, strength: 4 };
-    if (c.rank === SMALL_JOKER) return { cards, trump: { suit: 'NT', level }, strength: 3 };
+    if (c.rank === BIG_JOKER) return { cards, trump: { suit: 'NT', level }, strength: 40 };
+    if (c.rank === SMALL_JOKER) return { cards, trump: { suit: 'NT', level }, strength: 30 };
     if (c.rank === level && c.suit !== 'J')
-      return { cards, trump: { suit: c.suit, level }, strength: 2 };
+      return { cards, trump: { suit: c.suit, level }, strength: 20 + SUIT_ORDER[c.suit]! };
   }
   return null;
 }
@@ -190,17 +195,25 @@ function pickCards(hand: readonly Card[], ids: readonly string[]): Card[] {
 
 function declare(state: GameState, seat: number, cardIds: string[]): ReduceResult {
   expectPhase(state, 'dealing', 'declaring');
-  if (state.phase === 'declaring' && state.ask && state.ask.seat !== seat) {
-    throw new IllegalAction('还没轮到你表态', 'NOT_YOUR_TURN');
-  }
   const cards = pickCards(state.hands[seat]!, cardIds);
+  if (state.phase === 'declaring' && state.ask && state.ask.seat !== seat) {
+    // 例外：当前亮主者可以随时把单张追加为同花色一对（加固）
+    const cur0 = state.declaration;
+    const isReinforce =
+      cur0 &&
+      cur0.seat === seat &&
+      cards.length === 2 &&
+      cur0.trump.suit !== 'NT' &&
+      cards.every((c) => c.suit === cur0.trump.suit && c.rank === state.level);
+    if (!isReinforce) throw new IllegalAction('还没轮到你表态', 'NOT_YOUR_TURN');
+  }
   const decl = declarationOf(cards, state.level);
   if (!decl) throw new IllegalAction('这些牌不能用来亮主', 'BAD_DECLARE');
   const cur = state.declaration;
   if (cur) {
     if (decl.strength <= cur.strength)
       throw new IllegalAction('必须比当前亮主更大', 'WEAK_DECLARE');
-    if (cur.seat === seat && decl.strength === 2 && cur.trump.suit !== decl.trump.suit) {
+    if (cur.seat === seat && decl.strength < 30 && cur.trump.suit !== decl.trump.suit) {
       throw new IllegalAction('加固只能用同花色的一对', 'BAD_REINFORCE');
     }
   }
@@ -215,13 +228,14 @@ function declare(state: GameState, seat: number, cardIds: string[]): ReduceResul
     declaration,
     ask: { seat: nextEligible(seat, [], seat), passes: [] },
   };
-  if (state.postKitty && state.trump) {
-    // 扣底后被反主：主立即更换；第一局反主者成为新庄家，抠底重扣（后续局庄家固定，仍由庄家重扣）
+  if (state.postKitty && state.trump && declaration.trump.suit !== state.trump.suit) {
+    // 扣底后被反主（换了主花色）：第一局反主者上庄；之后庄家不变，但由反主者拿底重扣
     const trump = declaration.trump;
     const dealer = state.roundNo === 1 ? seat : state.dealer!;
+    const kittyOwner = seat;
     const hands = next.hands.map((h) => h.slice()) as GameState['hands'];
-    hands[dealer] = sortHand([...hands[dealer]!, ...next.kitty], trump);
-    next = { ...next, trump, dealer, hands, kitty: [], phase: 'kitty', ask: null };
+    hands[kittyOwner] = sortHand([...hands[kittyOwner]!, ...next.kitty], trump);
+    next = { ...next, trump, dealer, kittyOwner, hands, kitty: [], phase: 'kitty', ask: null };
     events.push({ type: 'trumpSet', trump, dealer, fromKitty: false });
   }
   return { state: next, events };
@@ -274,14 +288,25 @@ function finishDeclareRound(state: GameState): ReduceResult {
   const hands = state.hands.map((h) => h.slice()) as GameState['hands'];
   hands[dealer] = sortHand([...hands[dealer]!, ...kitty], trump);
   return {
-    state: { ...state, phase: 'kitty', trump, dealer, deck: [], hands, kitty: [], ask: null },
+    state: {
+      ...state,
+      phase: 'kitty',
+      trump,
+      dealer,
+      kittyOwner: dealer,
+      deck: [],
+      hands,
+      kitty: [],
+      ask: null,
+    },
     events: [{ type: 'trumpSet', trump, dealer, fromKitty }],
   };
 }
 
 function bury(state: GameState, seat: number, cardIds: string[]): ReduceResult {
   expectPhase(state, 'kitty');
-  if (seat !== state.dealer) throw new IllegalAction('只有庄家可以扣底', 'NOT_DEALER');
+  if (seat !== (state.kittyOwner ?? state.dealer))
+    throw new IllegalAction('还没轮到你扣底', 'NOT_DEALER');
   if (cardIds.length !== state.config.kittySize) {
     throw new IllegalAction(`必须扣 ${state.config.kittySize} 张`, 'BAD_KITTY_SIZE');
   }
@@ -426,7 +451,7 @@ export function currentActor(state: GameState): number | null {
     case 'declaring':
       return state.ask?.seat ?? null;
     case 'kitty':
-      return state.dealer;
+      return state.kittyOwner ?? state.dealer;
     case 'playing':
       return state.trick ? (state.trick.leader + state.trick.plays.length) % 4 : null;
     default:

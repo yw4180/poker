@@ -32,7 +32,10 @@ export interface Declaration {
   seat: number;
   cards: Card[];
   trump: Trump;
-  /** 1 单张级牌, 2 一对级牌, 3 一对小王, 4 一对大王 */
+  /**
+   * 亮主强度（可比较）：单张=10+花色序, 一对=20+花色序, 小王对=30, 大王对=40。
+   * 花色序 ♦0 ♣1 ♥2 ♠3；反主须严格更大 —— 一对只能被更大花色的一对或王对反。
+   */
   strength: number;
 }
 
@@ -66,6 +69,8 @@ export interface GameState {
   levels: [Rank, Rank];
   roundNo: number;
   dealer: number | null;
+  /** 当前持有底牌、需要扣底的座位（反主重扣时可能不是庄家） */
+  kittyOwner: number | null;
   /** 本局打的级别 */
   level: Rank;
   trump: Trump | null;

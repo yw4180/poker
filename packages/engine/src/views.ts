@@ -19,7 +19,8 @@ export interface PlayerView extends Omit<GameState, 'deck' | 'hands' | 'kitty'> 
 export function viewFor(state: GameState, seat: number): PlayerView {
   const { deck, hands, kitty, ...rest } = state;
   const kittyVisible =
-    ((state.phase === 'kitty' || state.phase === 'playing') && seat === state.dealer) ||
+    ((state.phase === 'kitty' || state.phase === 'playing') &&
+      seat === (state.kittyOwner ?? state.dealer)) ||
     state.phase === 'roundEnd' ||
     state.phase === 'finished';
   return {

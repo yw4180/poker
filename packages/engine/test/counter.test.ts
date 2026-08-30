@@ -74,3 +74,53 @@ describe('first-round counter after kitty', () => {
   });
 });
 void cs;
+
+describe('declare strength with suit ranking', () => {
+  it('pair beats single; only bigger-suit pair beats a pair; reinforce allowed out of turn', () => {
+    const rng = seededRandom(7);
+    let s = createGame([...players]);
+    s = reduce(s, { type: 'START_ROUND', deck: shuffle(makeDeck(), rng) }).state;
+    s = reduce(s, { type: 'DEAL_ALL' }).state;
+    // 手工放牌：0 有 ♣2 与 ♣2'，1 有 ♦2 对，3 有 ♠2 单
+    const take = (id: string) => makeDeck().find((c) => c.id === id)!;
+    const hands = s.hands.map((h) => h.slice()) as typeof s.hands;
+    hands[0] = [take('C2a'), take('C2b'), ...hands[0]!.filter((c) => c.rank !== 2).slice(0, 23)];
+    hands[1] = [take('D2a'), take('D2b'), ...hands[1]!.filter((c) => c.rank !== 2).slice(0, 23)];
+    hands[3] = [take('S2a'), ...hands[3]!.filter((c) => c.rank !== 2).slice(0, 24)];
+    s = { ...s, hands };
+    // 0 号被问到时亮 ♣ 单张
+    while (s.ask!.seat !== 0) s = reduce(s, { type: 'PASS_DECLARE', seat: s.ask!.seat }).state;
+    s = reduce(s, { type: 'DECLARE', seat: 0, cardIds: ['C2a'] }).state;
+    expect(s.declaration!.strength).toBe(11); // 10 + ♣(1)
+    // 1 号想用 ♦ 对反：对子(20+0) > 单张(11) ✓ 允许
+    while (s.ask!.seat !== 1) s = reduce(s, { type: 'PASS_DECLARE', seat: s.ask!.seat }).state;
+    s = reduce(s, { type: 'DECLARE', seat: 1, cardIds: ['D2a', 'D2b'] }).state;
+    expect(s.declaration!.seat).toBe(1);
+    expect(s.declaration!.strength).toBe(20);
+    // 0 号想用 ♣ 对反 ♦ 对：21 > 20 ✓（更大花色的一对）
+    while (s.ask!.seat !== 0) s = reduce(s, { type: 'PASS_DECLARE', seat: s.ask!.seat }).state;
+    s = reduce(s, { type: 'DECLARE', seat: 0, cardIds: ['C2a', 'C2b'] }).state;
+    expect(s.declaration!.strength).toBe(21);
+    // 3 号的 ♠ 单张(13) 反不了对子
+    while (s.ask!.seat !== 3) s = reduce(s, { type: 'PASS_DECLARE', seat: s.ask!.seat }).state;
+    expect(() => reduce(s, { type: 'DECLARE', seat: 3, cardIds: ['S2a'] })).toThrow();
+  });
+
+  it('declarer can upgrade single to same-suit pair even when not asked', () => {
+    const rng = seededRandom(11);
+    let s = createGame([...players]);
+    s = reduce(s, { type: 'START_ROUND', deck: shuffle(makeDeck(), rng) }).state;
+    s = reduce(s, { type: 'DEAL_ALL' }).state;
+    const take = (id: string) => makeDeck().find((c) => c.id === id)!;
+    const hands = s.hands.map((h) => h.slice()) as typeof s.hands;
+    hands[0] = [take('H2a'), take('H2b'), ...hands[0]!.filter((c) => c.rank !== 2).slice(0, 23)];
+    s = { ...s, hands };
+    while (s.ask!.seat !== 0) s = reduce(s, { type: 'PASS_DECLARE', seat: s.ask!.seat }).state;
+    s = reduce(s, { type: 'DECLARE', seat: 0, cardIds: ['H2a'] }).state;
+    // 现在轮到别人表态，但 0 号仍可加固
+    expect(s.ask!.seat).not.toBe(0);
+    s = reduce(s, { type: 'DECLARE', seat: 0, cardIds: ['H2a', 'H2b'] }).state;
+    expect(s.declaration!.strength).toBe(22);
+    expect(s.declaration!.seat).toBe(0);
+  });
+});

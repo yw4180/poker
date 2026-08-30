@@ -100,19 +100,25 @@ export function Controls({ game, room }: { game: GameView; room: RoomView; userI
     const options = legalDeclareOptions(game.hand, game.level, game.declaration, me);
     const myTurnToAsk = game.phase === 'declaring' && game.ask?.seat === me;
     const canJumpIn = game.phase === 'dealing';
+    // 亮主者随时可加固（同花色第二张升级为一对）
+    const canReinforce =
+      game.phase === 'declaring' &&
+      game.declaration?.seat === me &&
+      !myTurnToAsk &&
+      options.length > 0;
     return (
       <Bar>
         {game.phase === 'declaring' && game.postKitty && (
           <span className="text-amber-300">扣底后反主机会</span>
         )}
-        {(canJumpIn || myTurnToAsk) &&
+        {(canJumpIn || myTurnToAsk || canReinforce) &&
           options.map((o) => (
             <Button
               key={o.cardIds.join(',')}
               variant="primary"
               onClick={() => send({ type: 'DECLARE', cardIds: o.cardIds })}
             >
-              {game.declaration ? '反' : '亮'}{' '}
+              {game.declaration?.seat === me ? '加固' : game.declaration ? '反' : '亮'}{' '}
               {o.suit === 'NT'
                 ? o.strength === 4
                   ? '大王对 · 无主'
@@ -155,6 +161,7 @@ export function Controls({ game, room }: { game: GameView; room: RoomView; userI
           />
         )}
         <SuitCounts game={game} />
+        {autoplayButton}
       </Bar>
     );
   }
