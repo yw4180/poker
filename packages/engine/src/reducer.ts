@@ -255,15 +255,13 @@ function declare(state: GameState, seat: number, cardIds: string[]): ReduceResul
     declaration,
     ask: { seat: nextEligible(exclude, [], seat), passes: [] },
   };
-  if (
-    declaration.strength >= 40 &&
-    !(state.postKitty && state.trump && declaration.trump.suit !== state.trump.suit)
-  ) {
+  const takesKitty = state.postKitty && state.trump && seat !== (state.kittyOwner ?? state.dealer);
+  if (declaration.strength >= 40 && !takesKitty) {
     const fin = finishDeclareRound({ ...next, ask: null });
     return { state: fin.state, events: [...events, ...fin.events] };
   }
-  if (state.postKitty && state.trump && declaration.trump.suit !== state.trump.suit) {
-    // 扣底后被反主（换了主花色）：第一局反主者上庄；之后庄家不变，但由反主者拿底重扣
+  if (takesKitty) {
+    // 扣底后被反主（换人）：第一局反主者上庄；之后庄家不变；反主者拿底重扣
     const trump = declaration.trump;
     const dealer = state.roundNo === 1 ? seat : state.dealer!;
     const kittyOwner = seat;

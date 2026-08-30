@@ -140,3 +140,57 @@ describe('big joker pair skips asking', () => {
     expect(s.trick!.leader).toBe(1);
   });
 });
+
+describe('NT-over-NT counter transfers the kitty', () => {
+  it('small-joker pair countered by big-joker pair: second counter re-buries', () => {
+    const rng = seededRandom(33);
+    let s = createGame([...players]);
+    // 构造发牌顺序：小王对发给 1 号（下标 1、5），大王对发给 3 号（下标 3、7），底牌无王
+    const full = shuffle(makeDeck(), rng);
+    const rest = full.filter((c) => c.suit !== 'J');
+    const bySeat: Record<number, string[]> = { 1: ['SJa', 'SJb'], 3: ['BJa', 'BJb'] };
+    const jokerOf = (id: string) => full.find((c) => c.id === id)!;
+    const deck: typeof full = [];
+    let r = 0;
+    for (let i = 0; i < 108; i++) {
+      const seatIdx = i % 4;
+      const want = bySeat[seatIdx];
+      if (i < 8 && want && want.length && (i === seatIdx || i === seatIdx + 4)) {
+        deck.push(jokerOf(want.shift()!));
+      } else {
+        deck.push(rest[r++]!);
+      }
+    }
+    s = reduce(s, { type: 'START_ROUND', deck }).state;
+    s = reduce(s, { type: 'DEAL_ALL' }).state;
+    expect(s.hands[1]!.filter((c) => c.rank === 15)).toHaveLength(2);
+    expect(s.hands[3]!.filter((c) => c.rank === 16)).toHaveLength(2);
+    s = reduce(s, { type: 'DECLARE', seat: 1, cardIds: ['SJa', 'SJb'] }).state;
+    // 小王对仍可被大王对反，因此要先问一圈
+    expect(s.phase).toBe('declaring');
+    while (s.phase === 'declaring')
+      s = reduce(s, { type: 'PASS_DECLARE', seat: s.ask!.seat }).state;
+    expect(s.phase).toBe('kitty');
+    expect(s.kittyOwner).toBe(1);
+    s = reduce(s, {
+      type: 'BURY',
+      seat: 1,
+      cardIds: s.hands[1]!.slice(0, 8).map((c) => c.id),
+    }).state;
+    expect(s.phase).toBe('declaring');
+    while (s.ask && s.ask.seat !== 3)
+      s = reduce(s, { type: 'PASS_DECLARE', seat: s.ask.seat }).state;
+    s = reduce(s, { type: 'DECLARE', seat: 3, cardIds: ['BJa', 'BJb'] }).state;
+    expect(s.phase).toBe('kitty');
+    expect(s.kittyOwner).toBe(3);
+    expect(s.dealer).toBe(3);
+    expect(s.hands[3]).toHaveLength(33);
+    s = reduce(s, {
+      type: 'BURY',
+      seat: 3,
+      cardIds: s.hands[3]!.slice(0, 8).map((c) => c.id),
+    }).state;
+    expect(s.phase).toBe('playing');
+    expect(s.trick!.leader).toBe(3);
+  });
+});

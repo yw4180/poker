@@ -128,7 +128,7 @@ export const useStore = create<State>((set, get) => ({
       switch (ev.type) {
         case 'declared':
           get().notify(
-            `${name(ev.declaration.seat)} 亮主 ${trumpText(ev.declaration.trump.suit)}${ev.declaration.strength >= 2 ? '（一对）' : ''}`,
+            `${name(ev.declaration.seat)} 亮主 ${trumpText(ev.declaration.trump.suit)}${ev.declaration.strength >= 40 ? '（大王对）' : ev.declaration.strength >= 30 ? '（小王对）' : ev.declaration.strength >= 20 ? '（一对）' : ''}`,
           );
           break;
         case 'trumpSet':

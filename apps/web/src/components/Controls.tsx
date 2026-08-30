@@ -122,10 +122,10 @@ export function Controls({ game, room }: { game: GameView; room: RoomView; userI
             >
               {game.declaration?.seat === me ? '加固' : game.declaration ? '反' : '亮'}{' '}
               {o.suit === 'NT'
-                ? o.strength === 4
+                ? o.strength >= 40
                   ? '大王对 · 无主'
                   : '小王对 · 无主'
-                : `${SUIT_SYMBOL[o.suit]}${o.strength === 2 ? ' 一对' : ''}`}
+                : `${SUIT_SYMBOL[o.suit]}${o.strength >= 20 ? ' 一对' : ''}`}
             </Button>
           ))}
         {(myTurnToAsk || (openWindow && !iPassed)) && (
