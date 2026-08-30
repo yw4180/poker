@@ -8,6 +8,7 @@ import { Chat } from '@/components/Chat';
 import { Controls } from '@/components/Controls';
 import { GameLog } from '@/components/GameLog';
 import { Hand } from '@/components/Hand';
+import { KittyPanel } from '@/components/KittyPanel';
 import { LastTrick } from '@/components/LastTrick';
 import { Lobby } from '@/components/Lobby';
 import { RoundEndModal } from '@/components/RoundEndModal';
@@ -31,6 +32,7 @@ function RoomPage({ user }: { user: { id: string; name: string } }) {
   const notify = useStore((s) => s.notify);
   const kittyNewIds = useStore((s) => s.kittyNewIds);
   const showLastTrick = useStore((s) => s.showLastTrick);
+  const showKitty = useStore((s) => s.showKitty);
   const roundEndDismissed = useStore((s) => s.roundEndDismissed);
   const enterRoom = useStore((s) => s.enterRoom);
   const [showCounter, setShowCounter] = useState(true);
@@ -141,6 +143,7 @@ function RoomPage({ user }: { user: { id: string; name: string } }) {
             <Table game={game} room={room} voids={voids} />
             <UndoBanner room={room} mySeat={mySeat} />
             {showLastTrick && <LastTrick game={game} />}
+            {showKitty && game.kitty && <KittyPanel game={game} />}
             <Controls game={game} room={room} userId={user.id} />
             {mySeat >= 0 && (
               <Hand

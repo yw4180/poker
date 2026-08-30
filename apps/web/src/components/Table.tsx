@@ -1,4 +1,5 @@
 'use client';
+import { effectiveSuit } from '@poker/engine';
 import type { GameView, RoomView } from '@poker/protocol';
 import { Avatar } from './Avatar';
 import { PlayingCard } from './PlayingCard';
@@ -114,7 +115,11 @@ export function Table({
       >
         {play.cards.map((c, i) => (
           <div key={c.id} className={i === 0 ? '' : '-ml-5 sm:-ml-7'}>
-            <PlayingCard card={c} size="table" />
+            <PlayingCard
+              card={c}
+              size="table"
+              trump={!!game.trump && effectiveSuit(c, game.trump) === 'T'}
+            />
           </div>
         ))}
       </div>
@@ -150,6 +155,24 @@ export function Table({
       {game.phase === 'playing' &&
         showPlays.length === 0 &&
         centerNote(`等待 ${game.players[game.actor ?? 0]?.name} 领出`)}
+      {game.phase === 'playing' &&
+        !showingLast &&
+        trick &&
+        trick.plays.length > 0 &&
+        trick.lead && (
+          <span className="rounded-md bg-black/50 px-2.5 py-1 text-sm font-medium backdrop-blur-sm">
+            本轮{' '}
+            {trick.lead.suit === 'T' ? (
+              <span className="text-amber-300">主牌</span>
+            ) : (
+              <span
+                className={trick.lead.suit === 'H' || trick.lead.suit === 'D' ? 'text-red-400' : ''}
+              >
+                {SUIT_MINI[trick.lead.suit]}
+              </span>
+            )}
+          </span>
+        )}
     </div>
   );
 

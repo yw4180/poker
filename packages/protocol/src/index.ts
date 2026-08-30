@@ -17,8 +17,16 @@ export const RoomOptionsSchema = z.object({
   hint: z.boolean(),
   /** 出牌倒计时（秒），0 = 不限时；超时由机器人代打一手 */
   turnTimeoutSec: z.union([z.literal(0), z.literal(20), z.literal(40), z.literal(60)]),
-  /** 亮主窗口（秒） */
-  declareWindowSec: z.union([z.literal(3), z.literal(6), z.literal(10), z.literal(15)]),
+  /** 亮主/反主窗口（秒），0 = 无限制（全员点"过"才继续） */
+  declareWindowSec: z.union([
+    z.literal(0),
+    z.literal(3),
+    z.literal(6),
+    z.literal(10),
+    z.literal(15),
+    z.literal(30),
+    z.literal(60),
+  ]),
   /** 底牌翻倍：double 固定×2；exp 拖拉机 2^n */
   kittyBonus: z.enum(['double', 'exp']),
   /** 起打级别（升到 A 获胜） */
@@ -59,6 +67,7 @@ export const ClientEvents = {
   'room:nextRound': z.object({}),
   'room:autoplay': z.object({ on: z.boolean() }),
   'game:undoRequest': z.object({}),
+  'game:passDeclare': z.object({}),
   'game:undoVote': z.object({ approve: z.boolean() }),
   'game:action': PlayerActionSchema,
   'chat:send': z.object({ text: z.string().trim().min(1).max(200) }),
@@ -96,6 +105,8 @@ export interface RoomView {
   undoRequest: UndoRequestView | null;
   /** 已点击“下一局”的座位 */
   readyNext: number[];
+  /** 亮主阶段已选择“过”的座位 */
+  declarePasses: number[];
   seats: [SeatView | null, SeatView | null, SeatView | null, SeatView | null];
   spectators: { userId: string; name: string; avatar: string | null }[];
 }
@@ -147,6 +158,7 @@ export interface ClientToServerEvents {
   'room:autoplay': (p: ClientPayload<'room:autoplay'>, ack: (r: Ack) => void) => void;
   'room:setOptions': (p: ClientPayload<'room:setOptions'>, ack: (r: Ack) => void) => void;
   'game:undoRequest': (p: ClientPayload<'game:undoRequest'>, ack: (r: Ack) => void) => void;
+  'game:passDeclare': (p: ClientPayload<'game:passDeclare'>, ack: (r: Ack) => void) => void;
   'game:undoVote': (p: ClientPayload<'game:undoVote'>, ack: (r: Ack) => void) => void;
   'game:action': (p: ClientPayload<'game:action'>, ack: (r: Ack) => void) => void;
   'chat:send': (p: ClientPayload<'chat:send'>, ack: (r: Ack) => void) => void;

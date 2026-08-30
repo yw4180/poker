@@ -26,6 +26,9 @@ interface State {
   /** 本局结算弹窗是否被用户关闭（换局自动重置） */
   roundEndDismissed: boolean;
   setRoundEndDismissed(v: boolean): void;
+  /** 庄家回看底牌面板 */
+  showKitty: boolean;
+  setShowKitty(v: boolean): void;
   toggleSelect(id: string): void;
   setSelected(ids: string[]): void;
   clearSelect(): void;
@@ -51,6 +54,8 @@ export const useStore = create<State>((set, get) => ({
   showLastTrick: false,
   roundEndDismissed: false,
   setRoundEndDismissed: (v) => set({ roundEndDismissed: v }),
+  showKitty: false,
+  setShowKitty: (v) => set({ showKitty: v }),
   toggleSelect: (id) =>
     set((s) => ({
       selected: s.selected.includes(id) ? s.selected.filter((x) => x !== id) : [...s.selected, id],
@@ -100,6 +105,7 @@ export const useStore = create<State>((set, get) => ({
       if (prev && prev.roundNo !== game.roundNo) {
         patch.showLastTrick = false;
         patch.roundEndDismissed = false;
+        patch.showKitty = false;
       }
       set(patch);
     };

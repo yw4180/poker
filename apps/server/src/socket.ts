@@ -130,6 +130,7 @@ export function attachSocket(http: HttpServer, deps: SocketDeps): { io: IO; room
     on('room:autoplay', (p) => current().setAutoplay(user.id, p.on));
     on('room:setOptions', (p) => current().setOptions(user.id, p.options));
     on('game:undoRequest', () => current().requestUndo(user.id));
+    on('game:passDeclare', () => current().passDeclare(user.id));
     on('game:undoVote', (p) => current().voteUndo(user.id, p.approve));
     on('game:action', (p) => current().playerAction(user.id, p));
     on('chat:send', (p) => current().chat(user.id, p.text));

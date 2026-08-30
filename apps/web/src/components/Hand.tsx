@@ -51,6 +51,7 @@ export function Hand({
           >
             <PlayingCard
               card={c}
+              trump={!!trump && isTrump}
               selected={selected.includes(c.id)}
               highlight={highlightIds.includes(c.id)}
               onClick={interactive ? () => toggle(c.id) : undefined}

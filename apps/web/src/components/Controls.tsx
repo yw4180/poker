@@ -9,12 +9,45 @@ import { trumpText, useStore } from '@/lib/store';
 
 const SUIT_SYMBOL: Record<string, string> = { S: '♠', H: '♥', D: '♦', C: '♣' };
 
+/** 亮主阶段：各花色/王/级牌张数实时统计 */
+function SuitCounts({ game }: { game: GameView }) {
+  const counts: Record<string, number> = { S: 0, H: 0, C: 0, D: 0 };
+  let jokers = 0;
+  let levels = 0;
+  for (const c of game.hand) {
+    if (c.suit === 'J') jokers++;
+    else if (c.rank === game.level) levels++;
+    else counts[c.suit] = (counts[c.suit] ?? 0) + 1;
+  }
+  const chip = (label: string, n: number, red = false) => (
+    <span
+      key={label}
+      className={`rounded border border-white/15 bg-white/[0.06] px-1.5 font-mono text-xs leading-5 ${red ? 'text-red-300' : ''}`}
+    >
+      {label}
+      {n}
+    </span>
+  );
+  return (
+    <span className="flex items-center gap-1">
+      {chip('♠', counts.S ?? 0)}
+      {chip('♥', counts.H ?? 0, true)}
+      {chip('♣', counts.C ?? 0)}
+      {chip('♦', counts.D ?? 0, true)}
+      {chip('级', levels)}
+      {chip('王', jokers)}
+    </span>
+  );
+}
+
 export function Controls({ game, room }: { game: GameView; room: RoomView; userId: string }) {
   const selected = useStore((s) => s.selected);
   const setSelected = useStore((s) => s.setSelected);
   const clear = useStore((s) => s.clearSelect);
   const notify = useStore((s) => s.notify);
   const showLast = useStore((s) => s.showLastTrick);
+  const showKitty = useStore((s) => s.showKitty);
+  const setShowKitty = useStore((s) => s.setShowKitty);
   const setShowLast = useStore((s) => s.setShowLastTrick);
   const setRoundEndDismissed = useStore((s) => s.setRoundEndDismissed);
   const me = game.seat;
@@ -33,6 +66,10 @@ export function Controls({ game, room }: { game: GameView; room: RoomView; userI
   };
   const toggleAutoplay = async () => {
     const r = await request('room:autoplay', { on: !autoplay });
+    if (!r.ok) notify(r.error ?? '操作失败');
+  };
+  const passDeclare = async () => {
+    const r = await request('game:passDeclare', {});
     if (!r.ok) notify(r.error ?? '操作失败');
   };
   const requestUndo = async () => {
@@ -96,13 +133,21 @@ export function Controls({ game, room }: { game: GameView; room: RoomView; userI
             发牌中 · 剩 <span className="font-mono">{Math.max(0, game.deckCount - 8)}</span> 张
           </span>
         )}
-        {game.phase === 'declaring' && game.deadlineAt && (
+        {game.phase === 'declaring' && opts.declareWindowSec > 0 && game.deadlineAt && (
           <Countdown
             deadlineAt={game.deadlineAt}
             totalMs={opts.declareWindowSec * 1000}
             label="亮主"
           />
         )}
+        {game.phase === 'declaring' && (
+          <Button variant="ghost" disabled={room.declarePasses.includes(me)} onClick={passDeclare}>
+            {room.declarePasses.includes(me)
+              ? `已过 ${room.declarePasses.length}/4`
+              : `过（${room.declarePasses.length}/4）`}
+          </Button>
+        )}
+        <SuitCounts game={game} />
       </Bar>
     );
   }
@@ -211,6 +256,11 @@ export function Controls({ game, room }: { game: GameView; room: RoomView; userI
         >
           {showLast ? '关闭' : '上一墩'}
         </Button>
+        {game.kitty && (
+          <Button variant="ghost" onClick={() => setShowKitty(!showKitty)}>
+            {showKitty ? '收起底牌' : '看底牌'}
+          </Button>
+        )}
         {opts.undo && (
           <Button variant="ghost" disabled={!!room.undoRequest} onClick={requestUndo}>
             悔牌

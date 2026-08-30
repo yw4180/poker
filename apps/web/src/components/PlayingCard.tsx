@@ -26,6 +26,7 @@ export function PlayingCard({
   onClick,
   small = false,
   size: sizeProp,
+  trump = false,
 }: {
   card: Card;
   selected?: boolean;
@@ -33,6 +34,8 @@ export function PlayingCard({
   onClick?: () => void;
   small?: boolean;
   size?: CardSize;
+  /** 主牌：金色内圈提示 */
+  trump?: boolean;
 }) {
   const size = CARD_SIZE[sizeProp ?? (small ? 'sm' : 'md')];
   return (
@@ -47,6 +50,9 @@ export function PlayingCard({
         ${onClick ? 'cursor-pointer hover:-translate-y-1.5' : 'cursor-default'}`}
     >
       <CardSvg card={card} className="block h-full w-full" />
+      {trump && (
+        <span className="pointer-events-none absolute inset-0 rounded-[inherit] shadow-[inset_0_0_0_2px_rgba(245,158,11,0.75)]" />
+      )}
     </button>
   );
 }

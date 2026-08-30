@@ -4,7 +4,7 @@ import { Select } from './ui';
 import { levelText } from '@/lib/store';
 
 const TIMEOUTS: RoomOptions['turnTimeoutSec'][] = [0, 20, 40, 60];
-const DECLARE: RoomOptions['declareWindowSec'][] = [3, 6, 10, 15];
+const DECLARE: RoomOptions['declareWindowSec'][] = [0, 3, 6, 10, 15, 30, 60];
 const LEVELS: RoomOptions['startLevel'][] = [2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13];
 
 export function RoomOptionsForm({
@@ -83,7 +83,11 @@ export function RoomOptionsForm({
         label="出牌倒计时"
         opts={TIMEOUTS.map((v) => ({ v, t: v === 0 ? '不限时' : `${v} 秒` }))}
       />
-      <Row k="declareWindowSec" label="亮主窗口" opts={DECLARE.map((v) => ({ v, t: `${v} 秒` }))} />
+      <Row
+        k="declareWindowSec"
+        label="亮主窗口"
+        opts={DECLARE.map((v) => ({ v, t: v === 0 ? '无限制（全员过）' : `${v} 秒` }))}
+      />
       <Row
         k="startLevel"
         label="从几打起"
@@ -107,7 +111,7 @@ export function optionsSummary(o: RoomOptions): string {
     o.undo ? '悔牌' : null,
     o.hint ? '提示' : '无提示',
     o.turnTimeoutSec ? `${o.turnTimeoutSec}s 倒计时` : '不限时',
-    `亮主 ${o.declareWindowSec}s`,
+    o.declareWindowSec === 0 ? '亮主不限时' : `亮主 ${o.declareWindowSec}s`,
     o.kittyBonus === 'exp' ? '底牌 2ⁿ' : '底牌 ×2',
     o.startLevel !== 2 ? `从 ${o.startLevel} 打起` : null,
   ]
